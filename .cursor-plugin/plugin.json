@@ -1,0 +1,12 @@
+{
+  "name": "moda",
+  "displayName": "Moda",
+  "version": "0.1.0",
+  "description": "Skills for Moda's MCP server and REST API. Teaches agents the canonical design-creation, brand-kit, attachment, async-task, and design-to-code flows.",
+  "author": { "name": "Moda" },
+  "homepage": "https://moda.app",
+  "repository": "https://github.com/nullframe/moda-skills",
+  "keywords": ["moda", "design", "mcp", "api", "skills", "canvas"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
+}

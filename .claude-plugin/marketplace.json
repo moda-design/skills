@@ -1,0 +1,11 @@
+{
+  "name": "moda-skills",
+  "owner": { "name": "Moda", "url": "https://moda.app" },
+  "plugins": [
+    {
+      "name": "moda",
+      "source": "./",
+      "description": "Skills for Moda's MCP server and REST API. Teaches agents the canonical design-creation, brand-kit, attachment, async-task, and design-to-code flows."
+    }
+  ]
+}

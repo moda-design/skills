@@ -1,0 +1,11 @@
+{
+  "name": "Moda",
+  "version": "0.1.0",
+  "description": "Connect Moda to the Gemini CLI. Provides the Moda MCP server plus skill docs for common design-creation, brand-kit, attachment, async-task, and design-to-code workflows.",
+  "mcpServers": {
+    "moda": {
+      "httpUrl": "https://mcp.moda.app/mcp",
+      "oauth": { "enabled": true }
+    }
+  }
+}

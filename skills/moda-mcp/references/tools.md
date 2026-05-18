@@ -81,7 +81,7 @@ Partial update. Pass only the fields you want to change. When updating `colors` 
 | `title`, `colors`, `fonts`, `company_name`, `company_description`, `tagline`, `brand_values`, `brand_aesthetic`, `brand_tone_of_voice` | various | no |
 
 ### `set_default_brand_kit`
-Mark a brand kit as the team's default. Clears the default flag on whichever kit was previously default. Idempotent. Only call when the user explicitly asks.
+Mark a brand kit as the team's default. Clears the default flag on whichever kit was previously default. Idempotent. Only call when the user explicitly asks. Single parameter: `brand_kit_id`.
 
 ### `delete_brand_kit`
 Soft-delete a brand kit. Destructive — only call when the user explicitly names the kit to delete; never as part of a "cleanup" or bulk action the user didn't request.
@@ -90,7 +90,7 @@ Soft-delete a brand kit. Destructive — only call when the user explicitly name
 List all images attached to a brand kit (logos + references) in newest-first order. Useful before `add_brand_kit_image` to avoid duplicates.
 
 ### `add_brand_kit_image`
-Attach an uploaded `file_id` to a brand kit with a role. Roles: `"logo"` (used downstream in designs), `"reference"` (style hint to the agent), `"asset"` (includable in designs).
+Attach an uploaded `file_id` to a brand kit with a role. Roles: `"logo"` (used downstream in designs), `"reference"` (style hint to the agent; default if `role` is omitted), `"asset"` (includable in designs). Note: this role enum is **distinct** from the attachment `role` enum used by `start_design_task` (`source` / `reference` / `asset`) — both share `reference` and `asset` but `logo` is brand-kit-only.
 
 ### `remove_brand_kit_image`
 Detach an image from a brand kit by its `bki_` ID. Underlying file stays in storage; only the kit reference is removed. Destructive — only call on explicit user request.
@@ -111,7 +111,7 @@ Upload a file from a public URL into Moda's storage. Returns a stable `file_id` 
 | Parameter | Type | Required |
 | --- | --- | --- |
 | `filename` | string | yes |
-| `mime_type` | string | yes |
+| `mime_type` | string | no — defaults to `"application/octet-stream"`; match what you PUT |
 
 ### `register_uploaded_file`
 **Step 2 of the two-step local-file upload.** Call after PUTing bytes to the URL from `create_upload_url`. Returns the same `{id, url, ...}` shape as `upload_file` — pass the `file_id` to `add_brand_kit_image` or `start_design_task` attachments.
@@ -170,6 +170,7 @@ Duplicate a canvas; optionally start a design task on the copy. Original is neve
 | `prompt` | string | no — omit for plain duplicate (synchronous); include to queue a design task |
 | `new_name` | string | no — defaults to `"Remix of <original name>"` |
 | `brand_kit_id` | string | no — only used when `prompt` is provided |
+| `skip_brand_kit` | boolean | default `false`. Pass `true` to apply no brand kit even when the team has a default. |
 | `wait` | boolean | default `true` (opposite of `start_design_task`!). Pass `wait=false` for bulk fan-out so calls don't serialize. |
 
 ## Export
@@ -195,15 +196,9 @@ Poll an async export started by `export_canvas` when it returned `status="in_pro
 | --- | --- | --- |
 | `task_id` | string | yes — the `task_id` from `export_canvas`'s in-progress response |
 
-## Common wrong guesses
+## Behavioral gotchas
 
-- **Calling `start_design_task` without `format_category`** when the user asked for an Instagram post, carousel, PDF, or anything other than slides. Default is slides; always set the category explicitly.
-- **Using `format_category="social"` for an Instagram carousel**. Use `carousel` + `carousel_dimensions` + `carousel_page_count` — `social` produces a single static post.
-- **Passing a share URL where a `canvas_id` is expected** (e.g. in `reference_canvas_ids`). Use `list_my_canvases` or `search_canvases` to resolve first.
-- **Treating the structured `{status: "not_ready"}` from `export_canvas` as an error**. It's a retryable state.
-- **Paste-bombing public URLs into `attachments`** when the user has a local file. Call `upload_file` first and pass `{file_id, role}`.
-- **Asking for `list_tasks` with `limit > 50`** — the cap is 50.
-- **Forgetting `canvas_id` is ignored when resuming via `conversation_id`** — the agent already knows which canvas to edit.
+The silent-fail / surprising-behavior set (format defaults, wait asymmetry, concurrency caps, not_ready semantics, brand-kit auto-apply, attachment roles, etc.) is consolidated in [`gotchas.md`](./gotchas.md). Read it before any non-trivial flow.
 
 ## Upstream
 

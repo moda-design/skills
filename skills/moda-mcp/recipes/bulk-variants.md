@@ -10,7 +10,7 @@ There are **three** valid shapes. Pick based on what the user already has and wh
 | "Make 10 versions of *this* social post, each tailored differently" — N variants of a source canvas | **B — fan out `remix_design`** (preserves structure) |
 | "5-panel IG carousel" — one post with multiple linked panels | **C — single `start_design_task` with `format_category="carousel"`** |
 
-Carousel (Pattern C) is a hard cap of 5 panels — see [`../references/format-category.md`](../references/format-category.md). The rest of this recipe is about A and B.
+Carousel (Pattern C) is a hard cap of 5 panels — see [`../references/gotchas.md#format-and-dimensions`](../references/gotchas.md#format-and-dimensions). The rest of this recipe is about A and B.
 
 ## The single biggest gotcha — concurrency caps
 
@@ -20,7 +20,7 @@ Carousel (Pattern C) is a hard cap of 5 panels — see [`../references/format-ca
 | --- | --- |
 | `free` / `free_beta` | 3 |
 | `paid` | 10 |
-| `ultra` | 15 |
+| `ultra` / `enterprise` | 15 |
 
 Fan out N > cap and you'll get an `AgentJobRateLimitError` partway through — surfacing as a tool error from `start_design_task`. The skill's job is to never let the user see that error. Use a **windowed launch**: keep at most `cap` tasks in flight, slot in the next prompt every time one terminates.
 
@@ -172,20 +172,7 @@ Don't silently retry on `failed` unless you specifically know the error is trans
 
 If the user changes their mind ("never mind, kill them") or you spot a systemic issue (every task failing the same way), call `cancel_task(task_id)` on each in-flight handle. Already-terminal tasks are no-ops.
 
-## Gotchas
-
-- **Default the window to 3** when you don't know the plan. It's safe on free; it just under-utilizes paid/ultra.
-- **Use `list_tasks` to poll the pool, not `get_task_status` × N.** One RPC per tick instead of N.
-- **Deliver as each finishes.** Don't sit on results until the whole batch lands.
-- **One brand kit for all.** Don't pass `brand_kit_id` per task unless the *intent* is per-task brand swap (Pattern B variant).
-- **Per-item prompts need real per-item detail.** Templated `{persona}` in a generic sentence produces 10 generic ads.
-- **Don't promise instant delivery.** 10 tasks × 2–10 min each, run in batches of 3, is ~10–30 min wall-clock. Tell the user.
-- **Carousel ≠ bulk.** "10 IG carousel panels" violates the 5-panel cap. Push back; offer Pattern A (10 standalone posts) or Pattern C (5 panels in one carousel).
-
 ## See also
 
-- [`../references/format-category.md`](../references/format-category.md) — `social` vs `carousel` rules
-- [`../references/task-lifecycle.md`](../references/task-lifecycle.md) — poll cadence, terminal states, `list_tasks` semantics
-- [`../references/errors-and-retries.md`](../references/errors-and-retries.md) — rate-limit / billing / validation error patterns
-- [`pull-existing-canvas.md`](./pull-existing-canvas.md) — single-canvas remix (the non-bulk version of Pattern B)
-- [`brief-to-deck.md`](./brief-to-deck.md) — single-task flow for reference
+- [`../references/gotchas.md`](../references/gotchas.md) — `wait` asymmetry, concurrency caps, format defaults, carousel cap, `not_ready` retry, and the rest of the silent-fail set
+- [`../references/tools.md`](../references/tools.md) — full signatures for `start_design_task`, `remix_design`, `list_tasks`, `cancel_task`

@@ -1,6 +1,6 @@
 ---
 name: moda-mcp
-description: READ THIS FIRST before calling any Moda MCP tool, especially start_design_task. Strongly recommended whenever the Moda MCP server is connected or the user mentions Moda, moda.app, a moda.app/s/ share link, or wants to create, edit, remix, or export a canvas, slide deck, one-pager, ad, social post, Instagram or LinkedIn carousel, PDF report, diagram, UI mockup, or turn a Moda design into code. Covers the 17 MCP tools, the required prompt-gathering checklist before start_design_task, brand kits, attachments, the 2-10 minute async task lifecycle, format_category disambiguation (including carousel), and the common wrong guesses that break tasks.
+description: READ THIS FIRST before calling any Moda MCP tool, especially start_design_task. Strongly recommended whenever the Moda MCP server is connected or the user mentions Moda, moda.app, a moda.app/s/ share link, or wants to create, edit, remix, or export a canvas, slide deck, one-pager, ad, social post, Instagram or LinkedIn carousel, PDF report, diagram, UI mockup, or turn a Moda design into code. Covers the 20+ MCP tools, the required prompt-gathering checklist before start_design_task, brand kits, attachments (including the two-step upload for local files), the 2-10 minute async task lifecycle, format_category disambiguation (including carousel), the per-team concurrency cap (3 free / 10 paid / 15 ultra) for bulk fan-out, and the common wrong guesses that break tasks.
 ---
 
 # moda-mcp
@@ -11,7 +11,7 @@ Moda is an AI design agent that creates brand-aligned slides, one-pagers, ads, g
 
 Load this skill whenever **any** of the following is true:
 
-- You are about to call a Moda MCP tool (`set_context`, `get_context`, `get_moda_canvas`, `list_my_canvases`, `search_canvases`, `list_brand_kits`, `create_brand_kit`, `update_brand_kit`, `upload_file`, `start_design_task`, `get_task_status`, `list_tasks`, `remix_design`, `export_canvas`, `get_moda_canvas_tokens`, `list_moda_canvas_pages`, `list_organizations`).
+- You are about to call a Moda MCP tool (`set_context`, `get_context`, `list_organizations`, `get_moda_canvas`, `get_moda_canvas_tokens`, `list_moda_canvas_pages`, `list_my_canvases`, `search_canvases`, `list_brand_kits`, `create_brand_kit`, `update_brand_kit`, `set_default_brand_kit`, `delete_brand_kit`, `list_brand_kit_images`, `add_brand_kit_image`, `remove_brand_kit_image`, `upload_file`, `create_upload_url`, `register_uploaded_file`, `start_design_task`, `get_task_status`, `list_tasks`, `cancel_task`, `remix_design`, `export_canvas`, `get_export_status`).
 - The user mentions Moda, `moda.app`, or links a `moda.app/s/` share URL.
 - The user wants to make a deck, social post, carousel, ad, one-pager, PDF report, diagram, UI mockup, or any other visual asset.
 - The user wants to convert an existing Moda canvas to code.
@@ -37,7 +37,7 @@ Setup rituals per editor live at [`docs.moda.app/mcp/setup`](https://docs.moda.a
 | --- | --- | --- | --- |
 | 1 | **Format** | What is the user actually making — deck, Instagram post, carousel, LinkedIn post, PDF report, resume, diagram, UI mockup? | Ask. **Do not default to slides silently.** |
 | 2 | **Dimensions** | For social / carousel, which platform + orientation? (IG square 1080×1080, IG story 1080×1920, LinkedIn landscape 1080×1350, banner 1200×628) | Ask. Wrong dimensions produce a visually-wrong output. |
-| 3 | **Length** | `number_of_slides` (or `carousel_page_count` ≤ 5 for carousels) | Offer a default ("I'll plan for 10 slides") and move on. |
+| 3 | **Length** | Slide count (state in the prompt — e.g. "10 slides"), or `carousel_page_count` ≤ 5 for carousels | Offer a default ("I'll plan for 10 slides") and move on. |
 | 4 | **Audience / tone** | Investors, prospects, internal team, a specific customer? | Ask only if the content doesn't make tone obvious. |
 | 5 | **Real content** | Does the user have actual numbers, quotes, customer names, bullet points? Or is the prompt generic? | If generic, **ask**. Never fabricate stats or quotes. |
 | 6 | **Brand kit** | Run `list_brand_kits`. Is there a default? | If yes, use it — it applies automatically. If no brand kit exists, offer to create one from their website URL, or confirm `skip_brand_kit=True`. |
@@ -82,7 +82,7 @@ Every from-scratch design follows this six-step loop:
 (1) confirm workspace     → get_context / set_context (once per session)
 (2) ensure brand kit       → list_brand_kits; create_brand_kit if missing; or skip_brand_kit=True
 (3) upload references      → upload_file for any local PDFs / screenshots / images
-(4) start the task         → start_design_task with explicit format_category + dimensions + number_of_slides
+(4) start the task         → start_design_task with explicit format_category + dimensions (slide count goes in the prompt)
 (5) poll until terminal    → get_task_status until can_export == true (or is_terminal with status=failed/cancelled)
 (6) deliver                → share canvas_url, offer export_canvas (png / jpeg / pdf / pptx), offer to iterate via conversation_id
 ```
@@ -95,11 +95,10 @@ kits      = list_brand_kits()                                        # step 2
 upload    = upload_file(source_url="https://…/brief.pdf")            # step 3
 
 task = start_design_task(
-  prompt="Create a 10-slide pitch deck for FocusTime…",
+  prompt="Create a 10-slide pitch deck for FocusTime…",              # slide count goes here
   format_category="slides",
   format_width=1920,
   format_height=1080,
-  number_of_slides=10,
   brand_kit_id=kits["brand_kits"][0]["id"],                          # default kit
   attachments=[{"file_id": upload["id"], "role": "source"}],
 )                                                                    # step 4
@@ -125,11 +124,13 @@ Tell the user at step 4: "This usually takes 2–10 minutes — I'll update you 
 
 - **`format_category` has seven values**, not six: `slides`, `social`, `carousel`, `pdf`, `diagram`, `ui`, `other`. Carousel is a first-class format for Instagram / LinkedIn carousel posts, with its own `carousel_dimensions` (`square` / `linkedin` / `portrait`) and `carousel_page_count` (capped at 5). The default-silent-slides behavior is the single biggest source of wrong outputs. See [`references/format-category.md`](./references/format-category.md).
 
-- **`number_of_slides` pins slide count.** If the user says "a 10-slide deck" or "5 carousel panels," pass it explicitly. The agent will respect it.
+- **Slide count goes in the prompt, not a parameter.** Say "a 10-slide deck" in the prompt text — the design agent reads it and respects it. There is no dedicated `number_of_slides` MCP parameter. (Carousels are the exception — use `carousel_page_count`, capped at 5.)
 
 - **Attachments have two shapes and three roles.** Prefer the file-id form: `upload_file(source_url=…)` → `{file_id, role: "source" | "reference" | "asset"}`. `source` = extract content from this (a brief PDF). `reference` = emulate this style (a screenshot of a design you like). `asset` = drop this in verbatim (a logo or hero image). The older URL form (`{url, type}`) still works for public hosted URLs but drops role metadata. See [`references/attachments.md`](./references/attachments.md).
 
 - **`export_canvas` returns `not_ready` as a normal state.** When a canvas has an in-flight design task, `export_canvas` returns a structured `{status: "not_ready", reason, retry_after_seconds, task_id}` response — not an error. Wait `retry_after_seconds` and try again. See [`references/errors-and-retries.md`](./references/errors-and-retries.md).
+
+- **Per-team concurrency cap on `start_design_task` + `remix_design`.** `free` / `free_beta` = 3, `paid` = 10, `ultra` = 15. Exceeding the cap surfaces as a tool error on the call that put you over. When fanning out (see [`recipes/bulk-variants.md`](./recipes/bulk-variants.md)), use a **windowed launch** — keep at most `cap` tasks in flight; slot in the next one as each terminates. If you don't know the plan, default the window to 3.
 
 ## Common tasks
 

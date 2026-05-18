@@ -15,7 +15,6 @@
 task1 = start_design_task(
   prompt="Create a 10-slide pitch deck for FocusTime...",
   format_category="slides",
-  number_of_slides=10,
 )
 # → { task_id, canvas_id, canvas_url, conversation_id: "conv_01HT9…", ... }
 

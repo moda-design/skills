@@ -46,9 +46,9 @@ Tell the user what failed in a single sentence, then offer a concrete next step 
 
 ## Task cancellation
 
-`get_task_status` returns `{status: "cancelled"}` when someone cancelled the task from the Moda app UI. `can_export` stays `false`. Treat it like any other terminal state: acknowledge to the user, offer to start fresh.
+`get_task_status` returns `{status: "cancelled"}` when a task was cancelled — either from the Moda app UI or via `cancel_task(task_id)`. `can_export` stays `false`. Treat it like any other terminal state: acknowledge to the user, offer to start fresh.
 
-There is no MCP tool to cancel a task programmatically. That's a REST-API feature (`POST /v1/tasks/{id}/cancel`), not an MCP one.
+`cancel_task(task_id)` is a no-op on already-terminal tasks. Cancelling an MCP tool call while `start_design_task` / `remix_design` are blocking (`wait=True`) also publishes the cancel internally — billing stops with the job.
 
 ## Auth / connection errors
 

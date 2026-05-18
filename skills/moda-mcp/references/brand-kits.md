@@ -2,11 +2,14 @@
 
 A brand kit is a stored bundle of colors, fonts, logos, tagline, voice, values, and aesthetic descriptors. When a design task runs, Moda's design agent applies the team's default brand kit automatically unless you opt out.
 
-## The three tools
+## The tools
 
 - **`list_brand_kits`** — list all kits for the active team. The one with `is_default: true` is what `start_design_task` will use if no `brand_kit_id` is passed.
 - **`create_brand_kit(url=…)`** — extract brand data from a company website. Takes 10–30 seconds (Firecrawl-backed). Cached on subsequent runs for the same URL.
 - **`update_brand_kit(brand_kit_id=…, …)`** — partial update. Pass only the fields you want to change. When updating `colors` or `fonts`, the entire array is replaced (not merged).
+- **`set_default_brand_kit(brand_kit_id=…)`** — promote a kit to the team default; clears the previous default. Destructive — only on explicit user ask.
+- **`delete_brand_kit(brand_kit_id=…)`** — soft-delete. Destructive — only call when the user names the specific kit to delete.
+- **`list_brand_kit_images` / `add_brand_kit_image` / `remove_brand_kit_image`** — manage logos and reference images inside a kit. `add` takes a `file_id` from `upload_file` and a role (`logo` / `reference` / `asset`).
 
 ## The default-kit rule
 
@@ -99,7 +102,7 @@ Tell the user which kit you used in your follow-up message ("I applied your defa
 - **Forgetting `skip_brand_kit=True`** when the user wants an explicitly off-brand design. The default kit will apply and skew the output.
 - **Merging array updates in your head** and only passing the new entries. `colors` / `fonts` etc. are **replaced**; include the full list.
 - **Calling `create_brand_kit` and expecting it in < 5s.** It scrapes the website; budget 10–30s.
-- **Treating `is_default: true` as a field you can set via `update_brand_kit`.** Default is managed server-side (first kit per team becomes default automatically).
+- **Treating `is_default: true` as a field you can set via `update_brand_kit`.** It's not in `update_brand_kit`'s field list — use the dedicated `set_default_brand_kit(brand_kit_id=…)` tool to promote a kit, or the in-app UI.
 
 ## Upstream
 

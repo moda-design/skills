@@ -35,6 +35,33 @@ Role metadata is dropped — the agent infers use. Use only when the asset is al
 
 You can **mix shapes** in one `attachments` list.
 
+### Two-step upload for local files (no public URL)
+
+`upload_file` requires a `source_url`. If the user only has a local file on disk — and no public URL to put it at — use the two-step flow:
+
+```
+# Step 1: mint a signed PUT URL
+upload = create_upload_url(filename="logo.png", mime_type="image/png")
+# → { upload_url: "https://storage…?X-Goog-Signature=…", storage_key: "uploads/…" }
+
+# Step 2: PUT the bytes out-of-band (curl, fetch, whatever the host can do)
+#   curl -X PUT --data-binary @logo.png \
+#        -H 'Content-Type: image/png' "<upload_url>"
+
+# Step 3: register the upload as a Moda file
+file = register_uploaded_file(
+  storage_key=upload["storage_key"],
+  filename="logo.png",
+  mime_type="image/png",
+)
+# → { id: "file_…", url: "…", mime_type, ... } — same shape as upload_file
+
+# Now use file["id"] in attachments / brand-kit images the same way
+start_design_task(prompt="…", attachments=[{"file_id": file["id"], "role": "asset"}])
+```
+
+Prefer plain `upload_file(source_url=…)` whenever the file is already at a URL — it's a single call. The two-step flow exists because some MCP hosts can PUT files but can't expose them at a public URL.
+
 ## Roles
 
 | Role | Meaning | Example |
@@ -93,7 +120,6 @@ start_design_task(
   format_category="slides",
   format_width=1920,
   format_height=1080,
-  number_of_slides=12,
   attachments=[
     { "file_id": brief["id"], "role": "source", "label": "Q2 strategy brief" },
     { "file_id": style["id"], "role": "reference", "label": "Stripe homepage" },

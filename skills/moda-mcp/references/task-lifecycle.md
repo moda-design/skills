@@ -13,7 +13,7 @@ Don't sit silent while polling. Post a brief progress update if a task has been 
 ## The loop
 
 ```
-task = start_design_task(prompt="…", format_category="slides", number_of_slides=10)
+task = start_design_task(prompt="… 10-slide deck …", format_category="slides")
 # {task_id, canvas_id, canvas_url, conversation_id, status: "queued", retry_after_seconds: 3, ...}
 
 status = get_task_status(task_id=task["task_id"])
@@ -58,6 +58,7 @@ Every `start_design_task` / `get_task_status` response includes `conversation_id
 ```
 # first turn — no conversation_id
 task_a = start_design_task(prompt="Create a 10-slide pitch deck for FocusTime…", format_category="slides")
+# (slide count "10-slide" is in the prompt; there is no `number_of_slides` MCP parameter)
 # → conversation_id: "conv_01HT9…"
 
 # later — user says "make the headline bigger"
@@ -69,6 +70,38 @@ task_b = start_design_task(
 ```
 
 When resuming, the `canvas_id` parameter is **ignored** — the agent already knows which canvas it's editing.
+
+## Async exports (large PDFs / PPTX)
+
+`export_canvas` has its own ~20s synchronous wait budget. For large multi-page documents that exceed it, the call returns an in-progress handle instead of the final URL:
+
+```json
+{
+  "status": "in_progress",
+  "task_id": "550e8400-…",
+  "canvas_id": "660e8400-…",
+  "canvas_url": "https://moda.app/canvas/660e8400-…",
+  "format": "pdf",
+  "total_pages": 23,
+  "retry_after_seconds": 5
+}
+```
+
+Poll `get_export_status(task_id)` at the suggested cadence until `is_terminal == true`:
+
+```python
+result = export_canvas(canvas_id=canvas_id, format="pdf")
+while result.get("status") == "in_progress":
+    sleep(result["retry_after_seconds"])
+    result = get_export_status(task_id=result["task_id"])
+
+if result["status"] == "completed":
+    deliver(result["url"])
+else:
+    surface_error(result["error"])
+```
+
+Cache hits return synchronously regardless of `wait`. Export task records are kept for ~1 hour — don't sit on a `task_id` longer than that or it'll come back as not-found.
 
 ## The not-ready export state
 

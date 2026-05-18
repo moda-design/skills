@@ -51,7 +51,6 @@ task = start_design_task(
   format_category="slides",
   format_width=1920,
   format_height=1080,
-  number_of_slides=10,
   attachments=[
     { "file_id": notes["id"], "role": "source", "label": "Acme call notes" },
   ],

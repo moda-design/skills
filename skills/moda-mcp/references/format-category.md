@@ -18,7 +18,7 @@
 
 | User says | `format_category` | Also set |
 | --- | --- | --- |
-| "pitch deck", "slide deck", "presentation", "slides" | `slides` | `format_width=1920`, `format_height=1080`, `number_of_slides=N` |
+| "pitch deck", "slide deck", "presentation", "slides" | `slides` | `format_width=1920`, `format_height=1080`; state slide count in the prompt ("N slides") |
 | "Instagram post", "LinkedIn post" (single image), "Twitter post", "banner ad" | `social` | `format_width` + `format_height` per platform |
 | "Instagram carousel", "LinkedIn carousel", "5-slide IG post" | `carousel` | `carousel_dimensions` + `carousel_page_count` (≤ 5) |
 | "report", "resume", "one-pager", "PDF", "document" | `pdf` | |

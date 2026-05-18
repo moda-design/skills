@@ -1,6 +1,6 @@
 # Moda MCP — tools reference
 
-The Moda MCP server exposes 17 public tools. This is a compressed reference — the authoritative catalog lives at [`docs.moda.app/mcp/tools`](https://docs.moda.app/mcp/tools).
+The Moda MCP server exposes 20+ public tools. This is a compressed reference — the authoritative catalog lives at [`docs.moda.app/mcp/tools`](https://docs.moda.app/mcp/tools).
 
 ## Session
 
@@ -80,6 +80,21 @@ Partial update. Pass only the fields you want to change. When updating `colors` 
 | `brand_kit_id` | string | yes |
 | `title`, `colors`, `fonts`, `company_name`, `company_description`, `tagline`, `brand_values`, `brand_aesthetic`, `brand_tone_of_voice` | various | no |
 
+### `set_default_brand_kit`
+Mark a brand kit as the team's default. Clears the default flag on whichever kit was previously default. Idempotent. Only call when the user explicitly asks.
+
+### `delete_brand_kit`
+Soft-delete a brand kit. Destructive — only call when the user explicitly names the kit to delete; never as part of a "cleanup" or bulk action the user didn't request.
+
+### `list_brand_kit_images`
+List all images attached to a brand kit (logos + references) in newest-first order. Useful before `add_brand_kit_image` to avoid duplicates.
+
+### `add_brand_kit_image`
+Attach an uploaded `file_id` to a brand kit with a role. Roles: `"logo"` (used downstream in designs), `"reference"` (style hint to the agent), `"asset"` (includable in designs).
+
+### `remove_brand_kit_image`
+Detach an image from a brand kit by its `bki_` ID. Underlying file stays in storage; only the kit reference is removed. Destructive — only call on explicit user request.
+
 ## Uploads
 
 ### `upload_file`
@@ -89,6 +104,23 @@ Upload a file from a public URL into Moda's storage. Returns a stable `file_id` 
 | --- | --- | --- |
 | `source_url` | string | yes |
 | `filename` | string | no (inferred from URL) |
+
+### `create_upload_url`
+**Step 1 of the two-step local-file upload.** Returns a signed PUT URL + `storage_key`. PUT the file bytes to that URL out-of-band (e.g. `curl -X PUT --data-binary @file.png -H 'Content-Type: image/png' <url>`), then call `register_uploaded_file`. Use this path when the file is on disk and not already at a public URL.
+
+| Parameter | Type | Required |
+| --- | --- | --- |
+| `filename` | string | yes |
+| `mime_type` | string | yes |
+
+### `register_uploaded_file`
+**Step 2 of the two-step local-file upload.** Call after PUTing bytes to the URL from `create_upload_url`. Returns the same `{id, url, ...}` shape as `upload_file` — pass the `file_id` to `add_brand_kit_image` or `start_design_task` attachments.
+
+| Parameter | Type | Required |
+| --- | --- | --- |
+| `storage_key` | string | yes — from `create_upload_url` |
+| `filename` | string | yes |
+| `mime_type` | string | yes (match the Content-Type you PUT) |
 
 ## Design tasks
 
@@ -111,8 +143,10 @@ Key parameters (full list in the docs):
 | `format_width`, `format_height` | integer | canvas dimensions in pixels |
 | `carousel_dimensions` | string | `square` \| `linkedin` \| `portrait` (when `format_category="carousel"`) |
 | `carousel_page_count` | integer | capped at 5 (when `format_category="carousel"`) |
-| `number_of_slides` | integer | pin slide count |
 | `model_tier` | string | `pro` / `standard` / `lite` (auto if omitted) |
+| `wait` | boolean | default `false` — return a task handle immediately, poll with `get_task_status`. Pass `true` to block on completion (rarely useful via MCP). |
+
+Slide count for `slides` decks goes **in the prompt text** ("a 10-slide deck"). There is no `number_of_slides` MCP parameter — the REST API exposes one, but the MCP server does not.
 
 Return fields: `task_id`, `canvas_id`, `canvas_url`, `conversation_id`, `status`, `retry_after_seconds`.
 
@@ -122,7 +156,10 @@ Poll task progress. Returns `task_id`, `canvas_id`, `canvas_url`, `conversation_
 Statuses: `queued`, `running`, `completed`, `failed`, `cancelled`. Stop polling when `is_terminal == true`. Call `export_canvas` only when `can_export == true`.
 
 ### `list_tasks`
-List recent design tasks. Filter by `canvas_id`, `status`, `limit` (max 50).
+List recent design tasks. Filter by `canvas_id`, `status`, `limit` (max 50). Use this instead of fanning out one `get_task_status` per task when polling >3 tasks at once.
+
+### `cancel_task`
+Cancel a running or queued design task. Returns the updated task envelope. No-op on already-terminal tasks. Use when the user changes their mind on an in-flight task or when a bulk batch needs to abort early.
 
 ### `remix_design`
 Duplicate a canvas; optionally start a design task on the copy. Original is never modified.
@@ -147,6 +184,15 @@ Export a canvas as PNG, JPEG, PDF, or PPTX. Pass exactly one of `canvas_id` or `
 | `page_number` | integer \| null | image formats default to page 1; document formats default to all pages |
 
 Returns `{status: "completed", url, format}` on success, or a structured `{status: "not_ready", reason, retry_after_seconds, ...}` when a design task is still active on the canvas. Signed URL expires after 7 days.
+
+`wait` defaults to `true` (block up to ~20s for completion). For large multi-page PDFs or PPTX renders that may exceed the synchronous budget, the call returns `{status: "in_progress", task_id, ...}` instead — poll with `get_export_status` for the final URL.
+
+### `get_export_status`
+Poll an async export started by `export_canvas` when it returned `status="in_progress"`. Same shape as `get_task_status`: drive control flow off `is_terminal`. While running, retry after `retry_after_seconds`; on completion, `url` is set; on failure, `error` is set. Export task records are kept for ~1 hour.
+
+| Parameter | Type | Required |
+| --- | --- | --- |
+| `task_id` | string | yes — the `task_id` from `export_canvas`'s in-progress response |
 
 ## Common wrong guesses
 

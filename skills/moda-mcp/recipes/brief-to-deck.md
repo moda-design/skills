@@ -48,8 +48,8 @@ task = start_design_task(
   format_category="slides",
   format_width=1920,
   format_height=1080,
-  number_of_slides=10,
 )
+# Slide count ("10-slide") comes from the prompt — there's no dedicated MCP parameter.
 # → task_id, canvas_id, canvas_url, conversation_id, status: "queued", retry_after_seconds: 3
 ```
 
@@ -77,7 +77,7 @@ export_canvas(canvas_id=task["canvas_id"], format="pptx")
 
 - **If `list_brand_kits` is empty** on a first-run team, stop and offer to create one from the user's website URL before calling `start_design_task`. See [`onboard-new-brand.md`](./onboard-new-brand.md).
 - **Don't fabricate content.** If the user's prompt is generic ("a pitch deck for our startup"), ask for the actual story, metrics, and team bios. Never invent stats.
-- **Remember `number_of_slides`.** Passing "10" in the prompt text alone is less reliable than passing it as a parameter too.
+- **State the slide count in the prompt.** "10-slide deck" in the prompt text is how the agent picks length — there's no dedicated `number_of_slides` MCP parameter (the REST API has one, but the MCP server doesn't expose it).
 - **The conversation stays alive** via `task["conversation_id"]`. Iterations ("make the headline bigger") should pass it back, not start fresh.
 
 ## See also

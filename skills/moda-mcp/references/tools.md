@@ -1,6 +1,6 @@
 # Moda MCP — tools reference
 
-The Moda MCP server exposes 20+ public tools. This is a compressed reference — the authoritative catalog lives at [`docs.moda.app/mcp/tools`](https://docs.moda.app/mcp/tools).
+The Moda MCP server exposes 25+ public tools. This is a compressed reference — the authoritative catalog lives at [`docs.moda.app/mcp/tools`](https://docs.moda.app/mcp/tools).
 
 ## Session
 
@@ -48,7 +48,7 @@ Paginated list of canvases the user has access to. Ordered by most recently upda
 
 | Parameter | Type | Default |
 | --- | --- | --- |
-| `limit` | integer | 20 (max 100) |
+| `limit` | integer | 6 (max 100) |
 | `offset` | integer | 0 |
 
 ### `search_canvases`
@@ -153,7 +153,7 @@ Return fields: `task_id`, `canvas_id`, `canvas_url`, `conversation_id`, `status`
 ### `get_task_status`
 Poll task progress. Returns `task_id`, `canvas_id`, `canvas_url`, `conversation_id`, `status`, `progress_percent`, `current_step`, `is_terminal`, `can_export`, `retry_after_seconds`, `operations_streamed`, `created_at`, `started_at`, `completed_at`, `error`.
 
-Statuses: `queued`, `running`, `completed`, `failed`, `cancelled`. Stop polling when `is_terminal == true`. Call `export_canvas` only when `can_export == true`.
+Statuses: `queued`, `running`, `completed`, `failed`, `cancelled`, `dead_letter`. Stop polling when `is_terminal == true`. Call `export_canvas` only when `can_export == true`.
 
 ### `list_tasks`
 List recent design tasks. Filter by `canvas_id`, `status`, `limit` (max 50). Use this instead of fanning out one `get_task_status` per task when polling >3 tasks at once.
@@ -167,9 +167,10 @@ Duplicate a canvas; optionally start a design task on the copy. Original is neve
 | Parameter | Type | Required |
 | --- | --- | --- |
 | `canvas_id` | string | yes — canvas to duplicate |
-| `prompt` | string | no — omit for plain duplicate (synchronous); include to queue a design task (async, poll the returned `task_id`) |
-| `new_name` | string | no — defaults to `"<original> (Remix)"` |
+| `prompt` | string | no — omit for plain duplicate (synchronous); include to queue a design task |
+| `new_name` | string | no — defaults to `"Remix of <original name>"` |
 | `brand_kit_id` | string | no — only used when `prompt` is provided |
+| `wait` | boolean | default `true` (opposite of `start_design_task`!). Pass `wait=false` for bulk fan-out so calls don't serialize. |
 
 ## Export
 

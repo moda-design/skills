@@ -124,7 +124,9 @@ Cache hits return synchronously regardless of `wait`. Export task records are ke
 
 ## Cancellation
 
-Tasks are cancelled from the Moda app UI, not via MCP. If `get_task_status` returns `cancelled`, treat it like any terminal state — tell the user, offer to start fresh. `can_export` stays false on cancelled tasks.
+Cancel an in-flight task with `cancel_task(task_id)`. Already-terminal tasks are a no-op. Cancelling a blocking `start_design_task` / `remix_design` MCP call (when `wait=True`) also publishes the cancel signal internally — billing stops with the job.
+
+If `get_task_status` returns `cancelled` (from `cancel_task`, the Moda app UI, or a cancelled blocking call), treat it like any terminal state — tell the user, offer to start fresh. `can_export` stays false on cancelled tasks.
 
 ## Failure modes
 

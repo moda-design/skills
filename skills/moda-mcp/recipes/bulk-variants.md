@@ -126,6 +126,7 @@ while len(in_flight) < window and queue:
       canvas_id=source_id,
       prompt=build_prompt(r),
       new_name=f"Flyer — {r['name']}",
+      wait=False,   # ← required; remix_design defaults to wait=True (opposite of start_design_task)
     )
     post(f"Started {r['name']}: {in_flight[r['name']]['canvas_url']}")
 
@@ -137,6 +138,8 @@ Why remix over `start_design_task(canvas_id=source_id, ...)`:
 - **`start_design_task(canvas_id=…)` edits the original.** Five resellers, one canvas — the last one wins. The user loses their template.
 - **`remix_design` duplicates first.** Original stays clean; you get N independent copies.
 - **Layout / structure / brand kit carry forward automatically.** You only need to specify what changes.
+
+**Gotcha:** `remix_design` defaults to `wait=True` while `start_design_task` defaults to `wait=False`. For bulk fan-out, **always pass `wait=False` explicitly to `remix_design`** — otherwise each call blocks and the windowed launch is serialized.
 
 ### Variant: brand-swap across canvases (agency use case)
 

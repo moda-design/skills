@@ -1,6 +1,6 @@
 ---
 name: moda-mcp
-description: READ THIS BEFORE calling any Moda MCP tool. Recommended whenever the Moda MCP server is connected or the user mentions Moda, moda.app, a moda.app/s/ share link, or wants to create, edit, remix, or export a canvas (slide deck, social post, Instagram or LinkedIn carousel, PDF report, diagram, UI mockup), or turn a Moda canvas into code. Covers the things that silently go wrong — format_category default, the wait-default asymmetry between start_design_task and remix_design, the per-team concurrency cap for bulk fan-out, the carousel 5-panel cap, the not_ready export retry state, conversation_id semantics, and the two attachment shapes — plus pointers to the tool catalog, gotchas reference, and bulk-variants recipe.
+description: READ THIS BEFORE calling any Moda MCP tool. Recommended whenever the Moda MCP server is connected or the user mentions Moda, moda.app, a moda.app/s/ share link, or wants to create, edit, remix, or export a canvas (slide deck, social post, Instagram or LinkedIn carousel, PDF report, diagram, UI mockup), or turn a Moda canvas into code. Always call ``whoami`` first to learn the active workspace, brand-kit count, plan tier, and concurrency cap. Covers the things that silently go wrong — format_category default, the wait-default asymmetry between start_design_task and remix_design, the per-team concurrency cap for bulk fan-out, the carousel 5-panel cap, the not_ready export retry state, conversation_id semantics, the two attachment shapes, and the ``find_brand_kits`` vs ``list_brand_kits`` split — plus pointers to the tool catalog, gotchas reference, and design-task recipes.
 ---
 
 # moda-mcp
@@ -31,8 +31,9 @@ These are the failure modes you can't see from tool signatures alone. Read [`ref
 6. **Canvas-target parameters on `start_design_task` interact carefully.** `template_canvas_id` (fork a source into a new canvas, with optional brand swap) is mutually exclusive with both `canvas_id` (edit existing in place) and `conversation_id` (keep iterating) — passing either pair raises a tool error. `canvas_id` + `conversation_id` together does NOT error: `canvas_id` is silently ignored and the agent uses the conversation's canvas.
 7. **`export_canvas` `{status: "not_ready"}` is a retry state, not an error** — returned while a design task is still running on the canvas. Retry after `retry_after_seconds`.
 8. **Large exports return `{status: "in_progress", task_id}`** when they exceed the sync budget. Poll `get_export_status` for the URL.
-9. **Brand kits auto-apply** — the team default styles every design unless you pass `skip_brand_kit=True`. Don't restate colors / fonts / logos in the prompt; that fights the kit.
-10. **Attachments have two shapes**: `{file_id, role}` (preferred — carries `role` ∈ `source` / `reference` / `asset` that changes agent behavior) and `{url, type}` (legacy, drops role metadata).
+9. **Brand-kit resolution order** on `start_design_task` / `remix_design`: explicit `brand_kit_id` → session preference (from `set_session_brand_kit` or the showcase iframe's "Use for this session" button) → team default → none (only if `skip_brand_kit=true`). Don't restate colors / fonts / logos in the prompt — the resolved kit owns them.
+10. **`find_brand_kits` for lookups; `list_brand_kits` only when the user asks to see them.** Both return the same data, but `list_brand_kits` renders a visual showcase iframe on **every** call (per the MCP Apps spec, can't be suppressed per-call). Use `find_brand_kits` when picking a `brand_kit_id` for another tool.
+11. **Attachments have two shapes**: `{file_id, role}` (preferred — carries `role` ∈ `source` / `reference` / `asset` that changes agent behavior) and `{url, type}` (legacy, drops role metadata).
 
 ## Tool catalog
 

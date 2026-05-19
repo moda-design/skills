@@ -7,7 +7,7 @@ There are **three** valid shapes. Pick based on what the user already has and wh
 | User situation | Pattern |
 | --- | --- |
 | "Make 10 LinkedIn ads, one per persona" — N independent designs from scratch | **A — fan out `start_design_task`** |
-| "Make 10 versions of *this* social post, each tailored differently" — N variants of a source canvas | **B — fan out `remix_design`** (preserves structure) |
+| "Make 10 versions of *this* canvas" / "rebrand this template for each of our 5 clients" — N variants of a source canvas, with or without per-variant brand swap | **B — fan out `start_design_task` with `template_canvas_id`** (preserves structure; server auto-picks content-only remix vs full rebrand) |
 | "5-panel IG carousel" — one post with multiple linked panels | **C — single `start_design_task` with `format_category="carousel"`** |
 
 Carousel (Pattern C) is a hard cap of 5 panels — see [`../references/gotchas.md#format-and-dimensions`](../references/gotchas.md#format-and-dimensions). The rest of this recipe is about A and B.
@@ -97,15 +97,20 @@ Notes on the loop:
 - **Dimensions and `format_category` stay constant** across the batch. They're parameters.
 - **One brand kit for all** unless the user says otherwise. Omit `brand_kit_id` so each task picks up the team default. Don't fetch the kit per task — fetch once before the loop.
 
-## Pattern B — fan out `remix_design` (N variants of a source canvas)
+## Pattern B — fan out `start_design_task` with `template_canvas_id` (N variants of a source canvas)
 
-Best when the user has an existing canvas they're happy with and wants variations *of that design* — same structure, different copy, different brand, different aspect ratio. Remix duplicates the source canvas first, then applies the prompt to the copy. The original is never touched.
+Best when the user has an existing canvas they're happy with and wants variations *of that design* — same structure, different copy, different brand. The server copies the source, applies the resolved brand kit on the copy, then runs the agent against the copy. The original is never touched.
+
+Skill selection is automatic from brand-kit comparison:
+- Same brand kit as the source → content-only remix (preserve design, swap content)
+- Different `brand_kit_id` → full rebrand (rework colors, fonts, copy, imagery)
+- `skip_brand_kit=True` → no forced skill; the curator decides
 
 **User:** "I love this product flyer — make me 5 versions, one for each of these resellers: [list]. Same layout, swap the logo and the regional pricing."
 
 ```python
 source_id = "cvs_…"               # the flyer canvas the user pointed at
-resellers = [...]                  # 5 items
+resellers = [...]                  # 5 items, each with optional brand_kit_id for per-client rebrand
 window = 3
 
 queue = list(resellers)
@@ -115,47 +120,35 @@ def build_prompt(reseller):
     return f"""
       Customize this flyer for {reseller['name']}:
         - replace the headline price with {reseller['price']}
-        - place {reseller['name']}'s logo in the existing logo slot
         - update the contact strip with {reseller['phone']} / {reseller['email']}
-      Keep the layout, typography, and brand colors otherwise unchanged.
     """
 
 while len(in_flight) < window and queue:
     r = queue.pop(0)
-    in_flight[r["name"]] = remix_design(
-      canvas_id=source_id,
+    in_flight[r["name"]] = start_design_task(
+      template_canvas_id=source_id,
       prompt=build_prompt(r),
-      new_name=f"Flyer — {r['name']}",
-      wait=False,   # ← required; remix_design defaults to wait=True (opposite of start_design_task)
+      brand_kit_id=r.get("brand_kit_id"),   # per-client brand if rebranding; omit for same-brand fill
+      canvas_name=f"Flyer — {r['name']}",
+      # wait defaults to False on start_design_task — handle returned immediately
     )
     post(f"Started {r['name']}: {in_flight[r['name']]['canvas_url']}")
 
 # Same drain + refill loop as Pattern A
 ```
 
-Why remix over `start_design_task(canvas_id=source_id, ...)`:
+Why `template_canvas_id` over `start_design_task(canvas_id=source_id, ...)`:
 
-- **`start_design_task(canvas_id=…)` edits the original.** Five resellers, one canvas — the last one wins. The user loses their template.
-- **`remix_design` duplicates first.** Original stays clean; you get N independent copies.
-- **Layout / structure / brand kit carry forward automatically.** You only need to specify what changes.
+- **`canvas_id` edits the original.** Five resellers, one canvas — the last one wins. The user loses their template.
+- **`template_canvas_id` duplicates first.** Original stays clean; you get N independent copies.
+- **Layout / structure carry forward automatically.** You only specify what changes in the prompt.
+- **Per-variant brand swap is first-class.** Pass a different `brand_kit_id` per call to produce the same design rebranded for each client.
 
-**Gotcha:** `remix_design` defaults to `wait=True` while `start_design_task` defaults to `wait=False`. For bulk fan-out, **always pass `wait=False` explicitly to `remix_design`** — otherwise each call blocks and the windowed launch is serialized.
+**Note:** `template_canvas_id` is mutually exclusive with both `canvas_id` and `conversation_id` — passing either combination raises a tool error. See [`../references/gotchas.md#conversations-vs-canvases-vs-remixes`](../references/gotchas.md#conversations-vs-canvases-vs-remixes) for the full matrix.
 
-### Variant: brand-swap across canvases (agency use case)
+### When to use `remix_design` instead
 
-Pattern B with the same prompt but different `brand_kit_id` per call — "give me this same deck in each of our 5 client brands":
-
-```python
-for kit_id in client_kit_ids:
-    remix_design(
-      canvas_id=source_id,
-      brand_kit_id=kit_id,
-      new_name=f"Q3 Pitch — {kit_titles[kit_id]}",
-      # no prompt — the kit swap alone re-themes the design
-    )
-```
-
-Without a prompt, `remix_design` is **synchronous** (it's just a copy + brand re-apply), so you can skip the polling loop entirely. With a prompt, it's async like `start_design_task`.
+`remix_design(canvas_id=…)` without a prompt is a **synchronous plain duplicate** — useful when the user just wants a copy they'll edit themselves. With a prompt, it's an older async path that pre-dates `template_canvas_id`; prefer `template_canvas_id` for new bulk flows (cleaner brand-kit handling, automatic skill selection, no `wait` default asymmetry).
 
 ## Recovery: a task in the batch fails
 

@@ -40,9 +40,18 @@ The MCP surface has several behaviors that won't show up in tool signatures. Thi
 | --- | --- |
 | Iterate on the same design ("make the headline bigger") | `start_design_task(prompt=…, conversation_id=…)` — agent has full prior context |
 | Edit an existing canvas in place ("add a footer to my deck") | `start_design_task(prompt=…, canvas_id=…)` — destructive, modifies the canvas |
-| Fork an existing canvas with variations ("make 5 versions of this for…") | `remix_design(canvas_id=…, prompt=…, wait=false)` — duplicates first; original preserved |
+| Fork a canvas with variations, especially across brand kits ("make a version of this for each client") | `start_design_task(prompt=…, template_canvas_id=…, brand_kit_id=…)` — duplicates first; server auto-picks content-only remix vs full rebrand from brand-kit comparison; original preserved |
+| Plain sync duplicate, no prompt | `remix_design(canvas_id=…)` — single synchronous call, returns the new canvas |
 
-**`canvas_id` is silently ignored when `conversation_id` is set** — the agent uses the conversation's canvas regardless.
+**Mutual-exclusion matrix on `start_design_task`:**
+
+| Combo | Behavior |
+| --- | --- |
+| `canvas_id` + `template_canvas_id` | Tool error |
+| `template_canvas_id` + `conversation_id` | Tool error |
+| `canvas_id` + `conversation_id` | No error — `canvas_id` is silently ignored; the agent uses the conversation's canvas |
+
+The asymmetry is intentional: `conversation_id` always wins over `canvas_id` (older quirk, predates `template_canvas_id`), but `template_canvas_id` is strict because it changes the operation shape (source-copy-then-run vs in-place edit / resume).
 
 ## Brand kits
 

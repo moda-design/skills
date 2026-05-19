@@ -16,7 +16,7 @@ These are the failure modes you can't see from tool signatures alone. Read [`ref
 3. **`remix_design` defaults to `wait=True`** — opposite of `start_design_task`'s `wait=False`. For bulk fan-out, pass `wait=False` explicitly or each call blocks in series.
 4. **Per-team concurrency cap on design tasks**: `free` / `free_beta` = 3, `paid` = 10, `ultra` / `enterprise` = 15. Exceeding it errors out the call. Use a windowed launch for bulk; default the window to 3 when the plan is unknown.
 5. **Carousel cap = 5 panels** (`carousel_page_count`). "10 IG carousel slides" violates the cap — offer 5 panels or 10 standalone social posts.
-6. **`conversation_id` resuming silently ignores `canvas_id`** — the agent uses the conversation's canvas regardless.
+6. **Canvas-target parameters on `start_design_task` interact carefully.** `template_canvas_id` (fork a source into a new canvas, with optional brand swap) is mutually exclusive with both `canvas_id` (edit existing in place) and `conversation_id` (keep iterating) — passing either pair raises a tool error. `canvas_id` + `conversation_id` together does NOT error: `canvas_id` is silently ignored and the agent uses the conversation's canvas.
 7. **`export_canvas` `{status: "not_ready"}` is a retry state, not an error** — returned while a design task is still running on the canvas. Retry after `retry_after_seconds`.
 8. **Large exports return `{status: "in_progress", task_id}`** when they exceed the sync budget. Poll `get_export_status` for the URL.
 9. **Brand kits auto-apply** — the team default styles every design unless you pass `skip_brand_kit=True`. Don't restate colors / fonts / logos in the prompt; that fights the kit.

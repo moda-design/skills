@@ -132,9 +132,10 @@ Key parameters (full list in the docs):
 | Parameter | Type | Notes |
 | --- | --- | --- |
 | `prompt` | string | required. Natural-language design instructions. |
-| `canvas_id` | string | omit to create new; provide to edit existing |
-| `canvas_name` | string | name for the new canvas (create-only) |
-| `brand_kit_id` | string | default team kit is used if omitted |
+| `canvas_id` | string | omit to create new; provide to edit existing. Mutually exclusive with `template_canvas_id`. |
+| `template_canvas_id` | string | source canvas to remix into a new canvas. Server copies the source, applies `brand_kit_id` (or team default) on the copy, then runs the agent. Skill is auto-selected: same brand kit as source → content-only remix; different brand kit → full rebrand. Source canvas does not need to be a "template" — any canvas your team can read works. Mutually exclusive with `canvas_id` AND `conversation_id`. |
+| `canvas_name` | string | name for the new canvas. Used when creating fresh (no `canvas_id` / `template_canvas_id`) or when remixing via `template_canvas_id` (overrides default `"Remix of <source>"`). |
+| `brand_kit_id` | string | default team kit is used if omitted. With `template_canvas_id`, controls whether the agent rebrands the copy (different kit) or just edits content (same kit). |
 | `skip_brand_kit` | boolean | opt out of brand styling entirely |
 | `conversation_id` | string | resume a prior conversation with full context |
 | `attachments` | array | `{file_id, role, label?}` or `{url, name?, type?}` |

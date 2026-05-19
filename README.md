@@ -9,6 +9,8 @@ Moda is an AI design agent that creates brand-aligned slides, one-pagers, ads, g
 
 Install once and your agent knows the canonical design-creation flow, the prompt-gathering ritual before `start_design_task`, the brand-kit default, the 2–10 minute async task lifecycle, the `format_category` disambiguation table (including `carousel`), the prefixed-ID rule, the typed error envelope, and the webhook verification pattern — without re-deriving them from the docs every time.
 
+📖 **Full docs and install walkthroughs:** [docs.moda.app/mcp/agent-skill](https://docs.moda.app/mcp/agent-skill)
+
 ## Which install should I pick?
 
 | Situation | Install path |
@@ -180,7 +182,7 @@ The `callback_url` parameter is **API-key-auth only**. OAuth-authenticated MCP c
 
 ## Canonical Moda docs
 
-- [MCP overview](https://docs.moda.app/mcp) · [Setup](https://docs.moda.app/mcp/setup) · [Tools reference](https://docs.moda.app/mcp/tools) · [Creating designs](https://docs.moda.app/mcp/create-designs) · [Design-to-code](https://docs.moda.app/mcp/design-to-code) · [MCP authentication](https://docs.moda.app/mcp/authentication)
+- [MCP overview](https://docs.moda.app/mcp) · [Agent skill install guide](https://docs.moda.app/mcp/agent-skill) · [Setup](https://docs.moda.app/mcp/setup) · [Tools reference](https://docs.moda.app/mcp/tools) · [Creating designs](https://docs.moda.app/mcp/create-designs) · [Design-to-code](https://docs.moda.app/mcp/design-to-code) · [MCP authentication](https://docs.moda.app/mcp/authentication)
 - [REST API overview](https://docs.moda.app/api) · [Authentication](https://docs.moda.app/api/authentication) · [Versioning](https://docs.moda.app/api/versioning) · [Webhooks](https://docs.moda.app/api/webhooks)
 - Plain-text for any LLM: [`llms.txt`](https://docs.moda.app/llms.txt) · [`llms-full.txt`](https://docs.moda.app/llms-full.txt)
 

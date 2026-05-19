@@ -1,6 +1,6 @@
 ---
 name: moda-mcp
-description: READ THIS BEFORE calling any Moda MCP tool. Recommended whenever the Moda MCP server is connected or the user mentions Moda, moda.app, a moda.app/s/ share link, or wants to create, edit, remix, or export a canvas (slide deck, social post, Instagram or LinkedIn carousel, PDF report, diagram, UI mockup), or turn a Moda canvas into code. Always call ``whoami`` first to learn the active workspace, brand-kit count, plan tier, and concurrency cap. Covers the things that silently go wrong — format_category default, the wait-default asymmetry between start_design_task and remix_design, the per-team concurrency cap for bulk fan-out, the carousel 5-panel cap, the not_ready export retry state, conversation_id semantics, the two attachment shapes, and the ``find_brand_kits`` vs ``list_brand_kits`` split — plus pointers to the tool catalog, gotchas reference, and design-task recipes.
+description: READ THIS BEFORE calling any Moda MCP tool. Recommended whenever the Moda MCP server is connected or the user mentions Moda, moda.app, a moda.app/s/ share link, or wants to create, edit, remix, or export a canvas (slide deck, social post, Instagram or LinkedIn carousel, PDF report, diagram, UI mockup), or turn a Moda canvas into code. Always call ``whoami`` first to learn the active workspace, brand-kit count, plan tier, and concurrency cap, then open the matching design-task recipe (create-new-design, edit-existing-canvas, fill-template, rebrand-template, or bulk-variants) before calling ``start_design_task``. Also covers the gotchas that silently go wrong — format_category default, the wait-default asymmetry between start_design_task and remix_design, the per-team concurrency cap, the carousel 5-panel cap, the not_ready export retry state, conversation_id semantics, attachment shapes, and the ``find_brand_kits`` vs ``list_brand_kits`` split.
 ---
 
 # moda-mcp
@@ -19,9 +19,27 @@ On any new conversation, call `whoami` before doing anything else. It returns id
 
 If `whoami` shows `org_count > 1` and the active session isn't set, call `set_context(org_name=…)` (or ask the user) before any workspace-scoped tool.
 
-## What goes silently wrong
+## Pick a design-task recipe
 
-These are the failure modes you can't see from tool signatures alone. Read [`references/gotchas.md`](./references/gotchas.md) before any non-trivial flow.
+After `whoami`, the next thing to do is match the user's intent to one of five canonical workflows. **Open the matching recipe before calling `start_design_task`** — each one covers the right parameters, what's preserved vs mutated, and what to surface back to the user.
+
+| User intent | Recipe |
+| --- | --- |
+| Build something from scratch ("make me a deck", "create a LinkedIn post") | [`recipes/create-new-design.md`](./recipes/create-new-design.md) |
+| Modify a canvas in place ("add a footer to my deck") — **destructive** | [`recipes/edit-existing-canvas.md`](./recipes/edit-existing-canvas.md) |
+| Fill a template with new content, same brand | [`recipes/fill-template.md`](./recipes/fill-template.md) |
+| Rebrand a template for a different brand kit | [`recipes/rebrand-template.md`](./recipes/rebrand-template.md) |
+| Fan out N variants in parallel (windowed launch, concurrency cap) | [`recipes/bulk-variants.md`](./recipes/bulk-variants.md) |
+
+Most "design something" requests fit one of these. Picking the right one up front avoids the most common failure modes.
+
+## Tool catalog
+
+25+ tools across session context, canvas read, design-to-code, brand kits, uploads, design tasks, and export. Full signatures with defaults: [`references/tools.md`](./references/tools.md).
+
+## Gotchas — what silently goes wrong
+
+The recipes above are the happy paths. This list is the corrections / corner cases — consult [`references/gotchas.md`](./references/gotchas.md) when something surprises you, when you're about to do something the recipes don't cover, or before any non-trivial flow.
 
 1. **`format_category` silently defaults to slides** on `start_design_task`. Always pass it explicitly for social, carousel, pdf, diagram, ui, or other.
 2. **Slide count goes in the prompt text**, not a parameter. The REST API exposes `number_of_slides`; the MCP server does not.
@@ -34,22 +52,6 @@ These are the failure modes you can't see from tool signatures alone. Read [`ref
 9. **Brand-kit resolution order** on `start_design_task` / `remix_design`: explicit `brand_kit_id` → session preference (from `set_session_brand_kit` or the showcase iframe's "Use for this session" button) → team default → none (only if `skip_brand_kit=true`). Don't restate colors / fonts / logos in the prompt — the resolved kit owns them.
 10. **`find_brand_kits` for lookups; `list_brand_kits` only when the user asks to see them.** Both return the same data, but `list_brand_kits` renders a visual showcase iframe on **every** call (per the MCP Apps spec, can't be suppressed per-call). Use `find_brand_kits` when picking a `brand_kit_id` for another tool.
 11. **Attachments have two shapes**: `{file_id, role}` (preferred — carries `role` ∈ `source` / `reference` / `asset` that changes agent behavior) and `{url, type}` (legacy, drops role metadata).
-
-## Tool catalog
-
-25+ tools across session context, canvas read, design-to-code, brand kits, uploads, design tasks, and export. Full signatures with defaults: [`references/tools.md`](./references/tools.md).
-
-## Design task recipes
-
-Five workflows cover almost every "I want to design something" intent. Pick the right one — they differ in what's preserved and what's mutated.
-
-| User intent | Recipe |
-| --- | --- |
-| Build something from scratch ("make me a deck", "create a LinkedIn post") | [`recipes/create-new-design.md`](./recipes/create-new-design.md) |
-| Modify a canvas in place ("add a footer to my deck") — **destructive** | [`recipes/edit-existing-canvas.md`](./recipes/edit-existing-canvas.md) |
-| Fill a template with new content, same brand | [`recipes/fill-template.md`](./recipes/fill-template.md) |
-| Rebrand a template for a different brand kit | [`recipes/rebrand-template.md`](./recipes/rebrand-template.md) |
-| Fan out N variants in parallel (windowed launch, concurrency cap) | [`recipes/bulk-variants.md`](./recipes/bulk-variants.md) |
 
 ## Setup & auth
 

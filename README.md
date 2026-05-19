@@ -13,7 +13,7 @@ Install once and your agent knows the canonical design-creation flow, the prompt
 
 | Situation | Install path |
 | --- | --- |
-| You already have the Moda MCP connected, or only want the REST-API skill | **Vercel `skills` CLI** — `npx skills add moda-design/agent-skills` (skills only, no MCP touch) |
+| You already have the Moda MCP connected, or only want the REST-API skill | **Vercel `skills` CLI** — `npx skills add moda-design/skills` (skills only, no MCP touch) |
 | You're new to Moda and want one-shot skills + MCP setup | **Editor-native plugin** — pick your editor below |
 | You're on Claude Desktop, claude.ai, or Claude Mobile | **OAuth Custom Connector** — pair with `npx skills add` on a machine where you code |
 | You write raw system prompts or use the Claude Agent SDK | **Manual include** — `@include skills/moda-mcp/SKILL.md` |
@@ -25,7 +25,7 @@ Every install path ultimately surfaces the same Markdown files under [`skills/`]
 ### Claude Code — plugin (bundles skills + MCP)
 
 ```bash
-claude /plugin marketplace add moda-design/agent-skills
+claude /plugin marketplace add moda-design/skills
 claude /plugin install moda
 ```
 
@@ -34,7 +34,7 @@ Claude Code registers both skills and adds the `moda` MCP server from [`.mcp.jso
 ### Claude Code — skills only (no MCP change)
 
 ```bash
-npx skills add moda-design/agent-skills -a claude-code
+npx skills add moda-design/skills -a claude-code
 ```
 
 Installs both skills under `.claude/skills/`. Use this if you already connected the Moda MCP (or prefer to connect it manually — see the [Moda MCP setup docs](https://docs.moda.app/mcp/setup)).
@@ -42,20 +42,20 @@ Installs both skills under `.claude/skills/`. Use this if you already connected 
 If you only want one skill:
 
 ```bash
-npx skills add moda-design/agent-skills --skill moda-mcp -a claude-code
-npx skills add moda-design/agent-skills --skill moda-api -a claude-code
+npx skills add moda-design/skills --skill moda-mcp -a claude-code
+npx skills add moda-design/skills --skill moda-api -a claude-code
 ```
 
 ### Cursor — plugin
 
 ```
-/add-plugin moda-design/agent-skills
+/add-plugin moda-design/skills
 ```
 
 Cursor reads [`.cursor-plugin/plugin.json`](./.cursor-plugin/plugin.json) and auto-registers the skills plus the MCP server. The OAuth flow runs on first tool call. Skills-only fallback:
 
 ```bash
-npx skills add moda-design/agent-skills -a cursor
+npx skills add moda-design/skills -a cursor
 ```
 
 Manual MCP setup lives in [`.cursor/mcp.json`](https://docs.moda.app/mcp/setup) — same `streamable-http` config:
@@ -77,7 +77,7 @@ Add the Moda Custom Connector in your settings, then install the skills on a mac
 
 1. Open **Customize** in the sidebar → **+** → **Add custom connector**.
 2. **Name**: `Moda`. **URL**: `https://mcp.moda.app/mcp`. Click **Add**, then **Connect** and sign in.
-3. For skill docs in your coding environment, run `npx skills add moda-design/agent-skills` there.
+3. For skill docs in your coding environment, run `npx skills add moda-design/skills` there.
 
 Team/Enterprise claude.ai users: an admin must first add the Moda connector in **Admin Settings > Connectors**.
 
@@ -103,13 +103,13 @@ Add to your user or workspace `settings.json`:
 Then install the skills:
 
 ```bash
-npx skills add moda-design/agent-skills -a vscode
+npx skills add moda-design/skills -a vscode
 ```
 
 ### Gemini CLI
 
 ```bash
-gemini extensions install https://github.com/moda-design/agent-skills
+gemini extensions install https://github.com/moda-design/skills
 gemini /mcp auth moda
 ```
 
@@ -119,7 +119,7 @@ The extension manifest at [`gemini-extension.json`](./gemini-extension.json) reg
 
 For the Claude Agent SDK, Codex, Continue, Windsurf, or any agent that reads Markdown from a known path, either:
 
-- Run `npx skills add moda-design/agent-skills -a <agent>` (the CLI supports 45+ agents).
+- Run `npx skills add moda-design/skills -a <agent>` (the CLI supports 45+ agents).
 - Or include the SKILL.md directly in your system prompt:
 
   ```markdown
@@ -170,7 +170,7 @@ Full MCP setup + troubleshooting lives in the canonical docs: [docs.moda.app/mcp
 
 **Skills not showing up**
 
-- Confirm install target: `npx skills add moda-design/agent-skills --list` shows both skills.
+- Confirm install target: `npx skills add moda-design/skills --list` shows both skills.
 - Claude Code reads `~/.claude/skills/` (user) or `./.claude/skills/` (project). Verify the files are there.
 - Skills load when the conversation matches their `description` — if yours doesn't match, try prompting explicitly: "use the moda-mcp skill to ..."
 
@@ -186,7 +186,7 @@ The `callback_url` parameter is **API-key-auth only**. OAuth-authenticated MCP c
 
 ## Issues & feedback
 
-File issues at [github.com/moda-design/agent-skills/issues](https://github.com/moda-design/agent-skills/issues). Product feedback on Moda itself goes to [support@moda.app](mailto:support@moda.app).
+File issues at [github.com/moda-design/skills/issues](https://github.com/moda-design/skills/issues). Product feedback on Moda itself goes to [support@moda.app](mailto:support@moda.app).
 
 ## License
 

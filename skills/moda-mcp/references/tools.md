@@ -1,11 +1,16 @@
 # Moda MCP — tools reference
 
-The Moda MCP server exposes 17 public tools. This is a compressed reference — the authoritative catalog lives at [`docs.moda.app/mcp/tools`](https://docs.moda.app/mcp/tools).
+The Moda MCP server exposes 25+ public tools. This is a compressed reference — the authoritative catalog lives at [`docs.moda.app/mcp/tools`](https://docs.moda.app/mcp/tools).
 
 ## Session
 
+### `whoami`
+**Call this first on any new conversation.** Single-payload identity + active workspace + entitlements. Returns user (name/email), session (org/team/brand_kit ids+names), `org_count`, `team_default_brand_kit`, `brand_kit_count`, `plan`, and `concurrency_cap`. No parameters.
+
+Use the response to skip downstream lookups when defaults are unambiguous: `org_count == 1` → no multi-org disambiguation needed; `brand_kit_count == 1` → use that kit without further listing; `concurrency_cap` → the bulk fan-out window for this plan.
+
 ### `set_context`
-Set the active organization and team for the session. Persists 24 hours across reconnects.
+Set the active organization and team for the session. Persists 24 hours across reconnects. **Clears any session brand-kit preference** (kits are team-scoped).
 
 | Parameter | Type | Required |
 | --- | --- | --- |
@@ -13,7 +18,14 @@ Set the active organization and team for the session. Persists 24 hours across r
 | `team_name` | string | no (defaults to org's default team) |
 
 ### `get_context`
-Show the current session context. No parameters.
+Show the current session context — active org, team, and (if set) session brand kit. No parameters.
+
+### `set_session_brand_kit`
+Pin a brand kit for this session without changing the team default. Applies to subsequent `start_design_task` / `remix_design` calls that omit `brand_kit_id`. Pass `null`/empty to clear.
+
+| Parameter | Type | Required |
+| --- | --- | --- |
+| `brand_kit_id` | string \| null | no — bare UUID or `bk_…` wire form; null clears |
 
 ### `list_organizations`
 List orgs + teams the user belongs to. No parameters. Use names (not IDs) in user-facing messages.
@@ -48,7 +60,7 @@ Paginated list of canvases the user has access to. Ordered by most recently upda
 
 | Parameter | Type | Default |
 | --- | --- | --- |
-| `limit` | integer | 20 (max 100) |
+| `limit` | integer | 6 (max 100) |
 | `offset` | integer | 0 |
 
 ### `search_canvases`
@@ -61,8 +73,11 @@ Search canvases by name / content. Use when the user says "find my deck from Mar
 
 ## Brand kits
 
+### `find_brand_kits`
+**JSON-only — use this when the agent needs to pick a `brand_kit_id`** for another tool call (e.g. `start_design_task`). Same data as `list_brand_kits` but does not render the visual showcase iframe, so it doesn't take over the screen on tool-call lookups. Reads from session context unless overridden.
+
 ### `list_brand_kits`
-List brand kits for the active team (from session context, or override via `org_id` / `team_id`). Call before `start_design_task` to check for a default.
+**Renders the visual showcase iframe on every call** (per the MCP Apps spec, iframe rendering is decided at tool-listing time and can't be suppressed per-call). Use only when the user has explicitly asked to **see** or **browse** their brand kits. For agent-side lookups, prefer `find_brand_kits`.
 
 ### `create_brand_kit`
 Extract brand data (colors, fonts, logos, tone) from a company website URL. Takes 10–30s. First kit per team becomes the default automatically.
@@ -80,6 +95,21 @@ Partial update. Pass only the fields you want to change. When updating `colors` 
 | `brand_kit_id` | string | yes |
 | `title`, `colors`, `fonts`, `company_name`, `company_description`, `tagline`, `brand_values`, `brand_aesthetic`, `brand_tone_of_voice` | various | no |
 
+### `set_default_brand_kit`
+Mark a brand kit as the **team's** default — destructive, persists for every member. Only call when the user explicitly asks to change the team default. For session-only changes, use `set_session_brand_kit` instead (that's also what the showcase iframe's "Use for this session" button calls). Idempotent. Single parameter: `brand_kit_id`.
+
+### `delete_brand_kit`
+Soft-delete a brand kit. Destructive — only call when the user explicitly names the kit to delete; never as part of a "cleanup" or bulk action the user didn't request.
+
+### `list_brand_kit_images`
+List all images attached to a brand kit (logos + references) in newest-first order. Useful before `add_brand_kit_image` to avoid duplicates.
+
+### `add_brand_kit_image`
+Attach an uploaded `file_id` to a brand kit with a role. Roles: `"logo"` (used downstream in designs), `"reference"` (style hint to the agent; default if `role` is omitted), `"asset"` (includable in designs). Note: this role enum is **distinct** from the attachment `role` enum used by `start_design_task` (`source` / `reference` / `asset`) — both share `reference` and `asset` but `logo` is brand-kit-only.
+
+### `remove_brand_kit_image`
+Detach an image from a brand kit by its `bki_` ID. Underlying file stays in storage; only the kit reference is removed. Destructive — only call on explicit user request.
+
 ## Uploads
 
 ### `upload_file`
@@ -89,6 +119,23 @@ Upload a file from a public URL into Moda's storage. Returns a stable `file_id` 
 | --- | --- | --- |
 | `source_url` | string | yes |
 | `filename` | string | no (inferred from URL) |
+
+### `create_upload_url`
+**Step 1 of the two-step local-file upload.** Returns a signed PUT URL + `storage_key`. PUT the file bytes to that URL out-of-band (e.g. `curl -X PUT --data-binary @file.png -H 'Content-Type: image/png' <url>`), then call `register_uploaded_file`. Use this path when the file is on disk and not already at a public URL.
+
+| Parameter | Type | Required |
+| --- | --- | --- |
+| `filename` | string | yes |
+| `mime_type` | string | no — defaults to `"application/octet-stream"`; match what you PUT |
+
+### `register_uploaded_file`
+**Step 2 of the two-step local-file upload.** Call after PUTing bytes to the URL from `create_upload_url`. Returns the same `{id, url, ...}` shape as `upload_file` — pass the `file_id` to `add_brand_kit_image` or `start_design_task` attachments.
+
+| Parameter | Type | Required |
+| --- | --- | --- |
+| `storage_key` | string | yes — from `create_upload_url` |
+| `filename` | string | yes |
+| `mime_type` | string | yes (match the Content-Type you PUT) |
 
 ## Design tasks
 
@@ -100,9 +147,10 @@ Key parameters (full list in the docs):
 | Parameter | Type | Notes |
 | --- | --- | --- |
 | `prompt` | string | required. Natural-language design instructions. |
-| `canvas_id` | string | omit to create new; provide to edit existing |
-| `canvas_name` | string | name for the new canvas (create-only) |
-| `brand_kit_id` | string | default team kit is used if omitted |
+| `canvas_id` | string | omit to create new; provide to edit existing. Mutually exclusive with `template_canvas_id`. |
+| `template_canvas_id` | string | source canvas to remix into a new canvas. Server copies the source, applies `brand_kit_id` (or team default) on the copy, then runs the agent. Skill is auto-selected: same brand kit as source → content-only remix; different brand kit → full rebrand. Source canvas does not need to be a "template" — any canvas your team can read works. Mutually exclusive with `canvas_id` AND `conversation_id`. |
+| `canvas_name` | string | name for the new canvas. Used when creating fresh (no `canvas_id` / `template_canvas_id`) or when remixing via `template_canvas_id` (overrides default `"Remix of <source>"`). |
+| `brand_kit_id` | string | default team kit is used if omitted. With `template_canvas_id`, controls whether the agent rebrands the copy (different kit) or just edits content (same kit). |
 | `skip_brand_kit` | boolean | opt out of brand styling entirely |
 | `conversation_id` | string | resume a prior conversation with full context |
 | `attachments` | array | `{file_id, role, label?}` or `{url, name?, type?}` |
@@ -111,18 +159,23 @@ Key parameters (full list in the docs):
 | `format_width`, `format_height` | integer | canvas dimensions in pixels |
 | `carousel_dimensions` | string | `square` \| `linkedin` \| `portrait` (when `format_category="carousel"`) |
 | `carousel_page_count` | integer | capped at 5 (when `format_category="carousel"`) |
-| `number_of_slides` | integer | pin slide count |
 | `model_tier` | string | `pro` / `standard` / `lite` (auto if omitted) |
+| `wait` | boolean | default `false` — return a task handle immediately, poll with `get_task_status`. Pass `true` to block on completion (rarely useful via MCP). |
+
+Slide count for `slides` decks goes **in the prompt text** ("a 10-slide deck"). There is no `number_of_slides` MCP parameter — the REST API exposes one, but the MCP server does not.
 
 Return fields: `task_id`, `canvas_id`, `canvas_url`, `conversation_id`, `status`, `retry_after_seconds`.
 
 ### `get_task_status`
 Poll task progress. Returns `task_id`, `canvas_id`, `canvas_url`, `conversation_id`, `status`, `progress_percent`, `current_step`, `is_terminal`, `can_export`, `retry_after_seconds`, `operations_streamed`, `created_at`, `started_at`, `completed_at`, `error`.
 
-Statuses: `queued`, `running`, `completed`, `failed`, `cancelled`. Stop polling when `is_terminal == true`. Call `export_canvas` only when `can_export == true`.
+Statuses: `queued`, `running`, `completed`, `failed`, `cancelled`, `dead_letter`. Stop polling when `is_terminal == true`. Call `export_canvas` only when `can_export == true`.
 
 ### `list_tasks`
-List recent design tasks. Filter by `canvas_id`, `status`, `limit` (max 50).
+List recent design tasks. Filter by `canvas_id`, `status`, `limit` (max 50). Use this instead of fanning out one `get_task_status` per task when polling >3 tasks at once.
+
+### `cancel_task`
+Cancel a running or queued design task. Returns the updated task envelope. No-op on already-terminal tasks. Use when the user changes their mind on an in-flight task or when a bulk batch needs to abort early.
 
 ### `remix_design`
 Duplicate a canvas; optionally start a design task on the copy. Original is never modified.
@@ -130,9 +183,11 @@ Duplicate a canvas; optionally start a design task on the copy. Original is neve
 | Parameter | Type | Required |
 | --- | --- | --- |
 | `canvas_id` | string | yes — canvas to duplicate |
-| `prompt` | string | no — omit for plain duplicate (synchronous); include to queue a design task (async, poll the returned `task_id`) |
-| `new_name` | string | no — defaults to `"<original> (Remix)"` |
+| `prompt` | string | no — omit for plain duplicate (synchronous); include to queue a design task |
+| `new_name` | string | no — defaults to `"Remix of <original name>"` |
 | `brand_kit_id` | string | no — only used when `prompt` is provided |
+| `skip_brand_kit` | boolean | default `false`. Pass `true` to apply no brand kit even when the team has a default. |
+| `wait` | boolean | default `true` (opposite of `start_design_task`!). Pass `wait=false` for bulk fan-out so calls don't serialize. |
 
 ## Export
 
@@ -148,15 +203,18 @@ Export a canvas as PNG, JPEG, PDF, or PPTX. Pass exactly one of `canvas_id` or `
 
 Returns `{status: "completed", url, format}` on success, or a structured `{status: "not_ready", reason, retry_after_seconds, ...}` when a design task is still active on the canvas. Signed URL expires after 7 days.
 
-## Common wrong guesses
+`wait` defaults to `true` (block up to ~20s for completion). For large multi-page PDFs or PPTX renders that may exceed the synchronous budget, the call returns `{status: "in_progress", task_id, ...}` instead — poll with `get_export_status` for the final URL.
 
-- **Calling `start_design_task` without `format_category`** when the user asked for an Instagram post, carousel, PDF, or anything other than slides. Default is slides; always set the category explicitly.
-- **Using `format_category="social"` for an Instagram carousel**. Use `carousel` + `carousel_dimensions` + `carousel_page_count` — `social` produces a single static post.
-- **Passing a share URL where a `canvas_id` is expected** (e.g. in `reference_canvas_ids`). Use `list_my_canvases` or `search_canvases` to resolve first.
-- **Treating the structured `{status: "not_ready"}` from `export_canvas` as an error**. It's a retryable state.
-- **Paste-bombing public URLs into `attachments`** when the user has a local file. Call `upload_file` first and pass `{file_id, role}`.
-- **Asking for `list_tasks` with `limit > 50`** — the cap is 50.
-- **Forgetting `canvas_id` is ignored when resuming via `conversation_id`** — the agent already knows which canvas to edit.
+### `get_export_status`
+Poll an async export started by `export_canvas` when it returned `status="in_progress"`. Same shape as `get_task_status`: drive control flow off `is_terminal`. While running, retry after `retry_after_seconds`; on completion, `url` is set; on failure, `error` is set. Export task records are kept for ~1 hour.
+
+| Parameter | Type | Required |
+| --- | --- | --- |
+| `task_id` | string | yes — the `task_id` from `export_canvas`'s in-progress response |
+
+## Behavioral gotchas
+
+The silent-fail / surprising-behavior set (format defaults, wait asymmetry, concurrency caps, not_ready semantics, brand-kit auto-apply, attachment roles, etc.) is consolidated in [`gotchas.md`](./gotchas.md). Read it before any non-trivial flow.
 
 ## Upstream
 

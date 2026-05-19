@@ -24,7 +24,7 @@ Carousel (Pattern C) is a hard cap of 5 panels — see [`../references/gotchas.m
 
 Fan out N > cap and you'll get an `AgentJobRateLimitError` partway through — surfacing as a tool error from `start_design_task`. The skill's job is to never let the user see that error. Use a **windowed launch**: keep at most `cap` tasks in flight, slot in the next prompt every time one terminates.
 
-If you don't know the user's plan (and you usually won't from the MCP surface alone), default to a window of **3**. Safe everywhere. Bump up only if the first batch shows you have headroom.
+**Get the cap from `whoami`** — its `concurrency_cap` field is the exact number for the user's plan. If you haven't called `whoami` yet, default to **3** (safe everywhere) and bump up after the first batch confirms headroom.
 
 ## Pattern A — fan out `start_design_task` (N independent designs)
 
@@ -39,7 +39,7 @@ Best when each variant has fundamentally different content: per-persona ad copy,
 ```python
 personas = ["CFOs", "CTOs", "heads of ops", ...]   # the user-provided list
 dimensions = dict(format_category="social", format_width=1080, format_height=1080)
-window = 3   # safe default; bump up if you know the user has paid/ultra
+window = whoami_response.get("concurrency_cap", 3)   # use whoami's value; fall back to 3 if unknown
 
 def build_prompt(persona):
     return f"""

@@ -7,6 +7,18 @@ description: READ THIS BEFORE calling any Moda MCP tool. Recommended whenever th
 
 Moda is an AI design agent. The MCP server at `https://mcp.moda.app/mcp` lets you create designs from a prompt, remix existing canvases, and export to PNG / JPEG / PDF / PPTX. Public share links (`moda.app/s/…`) work unauthenticated; everything else requires OAuth (default in Claude / Cursor / VS Code / Gemini CLI) or an API key (`moda_live_…` for scripts, CI, scheduled jobs).
 
+## Call `whoami` first
+
+On any new conversation, call `whoami` before doing anything else. It returns identity + active workspace + entitlements in one payload (~no UI, no side effects) and lets you skip a lot of downstream tool calls:
+
+- `org_count == 1` → the user has one organization; no need to call `list_organizations` or ask which workspace to use.
+- `brand_kit_count == 1` → use `team_default_brand_kit.id` directly; don't call `find_brand_kits`.
+- `brand_kit_count == 0` → no kit exists; offer `create_brand_kit(url=…)` or proceed with `skip_brand_kit=true`.
+- `concurrency_cap` → the bulk fan-out window for this plan (3 free / 10 paid / 15 ultra/enterprise). Use it instead of defaulting to 3.
+- `session.brand_kit_id` → if non-null, the user has pinned a kit for this session; honor it.
+
+If `whoami` shows `org_count > 1` and the active session isn't set, call `set_context(org_name=…)` (or ask the user) before any workspace-scoped tool.
+
 ## What goes silently wrong
 
 These are the failure modes you can't see from tool signatures alone. Read [`references/gotchas.md`](./references/gotchas.md) before any non-trivial flow.
@@ -26,9 +38,17 @@ These are the failure modes you can't see from tool signatures alone. Read [`ref
 
 25+ tools across session context, canvas read, design-to-code, brand kits, uploads, design tasks, and export. Full signatures with defaults: [`references/tools.md`](./references/tools.md).
 
-## Bulk fan-out
+## Design task recipes
 
-The most-asked workflow ("make 10 variations of this") has non-obvious patterns: which tool to use, how to respect the concurrency cap, how to poll efficiently. See [`recipes/bulk-variants.md`](./recipes/bulk-variants.md).
+Five workflows cover almost every "I want to design something" intent. Pick the right one — they differ in what's preserved and what's mutated.
+
+| User intent | Recipe |
+| --- | --- |
+| Build something from scratch ("make me a deck", "create a LinkedIn post") | [`recipes/create-new-design.md`](./recipes/create-new-design.md) |
+| Modify a canvas in place ("add a footer to my deck") — **destructive** | [`recipes/edit-existing-canvas.md`](./recipes/edit-existing-canvas.md) |
+| Fill a template with new content, same brand | [`recipes/fill-template.md`](./recipes/fill-template.md) |
+| Rebrand a template for a different brand kit | [`recipes/rebrand-template.md`](./recipes/rebrand-template.md) |
+| Fan out N variants in parallel (windowed launch, concurrency cap) | [`recipes/bulk-variants.md`](./recipes/bulk-variants.md) |
 
 ## Setup & auth
 

@@ -55,13 +55,23 @@ The asymmetry is intentional: `conversation_id` always wins over `canvas_id` (ol
 
 ## Brand kits
 
-**The team default brand kit auto-applies** to every `start_design_task` unless you pass `skip_brand_kit=True` or override with `brand_kit_id`. The kit owns colors, fonts, typography, and logo placement.
+**`find_brand_kits` for lookups; `list_brand_kits` only when the user asked to see them.** Both return the same data, but `list_brand_kits` renders a visual showcase iframe on **every** call (per the MCP Apps spec, iframe rendering is decided at tool-listing time and can't be suppressed per-call). When you're just trying to pick a `brand_kit_id` for another tool, use `find_brand_kits` — it's JSON-only and doesn't steal screen real estate.
 
-**Don't restate brand colors / fonts / logos in the prompt** when a kit applies — it fights the kit and sometimes overrides it.
+**Resolution order for `start_design_task` / `remix_design`:**
+1. Explicit `brand_kit_id` parameter (highest priority)
+2. Session preference (`set_session_brand_kit`, or the showcase iframe's "Use for this session" button)
+3. Team default brand kit
+4. None (only when `skip_brand_kit=true` is set)
 
-**Ask the user when the team has multiple kits.** Silently falling back to the default isn't always what they want.
+**Don't restate brand colors / fonts / logos in the prompt** when a kit applies — it fights the kit.
 
-**First kit per team becomes default automatically.** To promote a different kit later, use `set_default_brand_kit(brand_kit_id)`.
+**`set_context` clears the session brand kit.** Kits are team-scoped; a kit pinned on Team A is meaningless on Team B.
+
+**`set_session_brand_kit` is session-only.** It does NOT touch the team default. To change the team default, use `set_default_brand_kit` — destructive, only call on explicit user request.
+
+**Ask the user when the team has multiple kits** and `whoami` shows no session preference. Silently falling back to the default isn't always what they want.
+
+**First kit per team becomes default automatically.** To promote a different kit later as the *team* default, use `set_default_brand_kit(brand_kit_id)`.
 
 ## Attachments
 

@@ -4,8 +4,13 @@ The Moda MCP server exposes 25+ public tools. This is a compressed reference —
 
 ## Session
 
+### `whoami`
+**Call this first on any new conversation.** Single-payload identity + active workspace + entitlements. Returns user (name/email), session (org/team/brand_kit ids+names), `org_count`, `team_default_brand_kit`, `brand_kit_count`, `plan`, and `concurrency_cap`. No parameters.
+
+Use the response to skip downstream lookups when defaults are unambiguous: `org_count == 1` → no multi-org disambiguation needed; `brand_kit_count == 1` → use that kit without further listing; `concurrency_cap` → the bulk fan-out window for this plan.
+
 ### `set_context`
-Set the active organization and team for the session. Persists 24 hours across reconnects.
+Set the active organization and team for the session. Persists 24 hours across reconnects. **Clears any session brand-kit preference** (kits are team-scoped).
 
 | Parameter | Type | Required |
 | --- | --- | --- |
@@ -13,7 +18,14 @@ Set the active organization and team for the session. Persists 24 hours across r
 | `team_name` | string | no (defaults to org's default team) |
 
 ### `get_context`
-Show the current session context. No parameters.
+Show the current session context — active org, team, and (if set) session brand kit. No parameters.
+
+### `set_session_brand_kit`
+Pin a brand kit for this session without changing the team default. Applies to subsequent `start_design_task` / `remix_design` calls that omit `brand_kit_id`. Pass `null`/empty to clear.
+
+| Parameter | Type | Required |
+| --- | --- | --- |
+| `brand_kit_id` | string \| null | no — bare UUID or `bk_…` wire form; null clears |
 
 ### `list_organizations`
 List orgs + teams the user belongs to. No parameters. Use names (not IDs) in user-facing messages.
@@ -61,8 +73,11 @@ Search canvases by name / content. Use when the user says "find my deck from Mar
 
 ## Brand kits
 
+### `find_brand_kits`
+**JSON-only — use this when the agent needs to pick a `brand_kit_id`** for another tool call (e.g. `start_design_task`). Same data as `list_brand_kits` but does not render the visual showcase iframe, so it doesn't take over the screen on tool-call lookups. Reads from session context unless overridden.
+
 ### `list_brand_kits`
-List brand kits for the active team (from session context, or override via `org_id` / `team_id`). Call before `start_design_task` to check for a default.
+**Renders the visual showcase iframe on every call** (per the MCP Apps spec, iframe rendering is decided at tool-listing time and can't be suppressed per-call). Use only when the user has explicitly asked to **see** or **browse** their brand kits. For agent-side lookups, prefer `find_brand_kits`.
 
 ### `create_brand_kit`
 Extract brand data (colors, fonts, logos, tone) from a company website URL. Takes 10–30s. First kit per team becomes the default automatically.
@@ -81,7 +96,7 @@ Partial update. Pass only the fields you want to change. When updating `colors` 
 | `title`, `colors`, `fonts`, `company_name`, `company_description`, `tagline`, `brand_values`, `brand_aesthetic`, `brand_tone_of_voice` | various | no |
 
 ### `set_default_brand_kit`
-Mark a brand kit as the team's default. Clears the default flag on whichever kit was previously default. Idempotent. Only call when the user explicitly asks. Single parameter: `brand_kit_id`.
+Mark a brand kit as the **team's** default — destructive, persists for every member. Only call when the user explicitly asks to change the team default. For session-only changes, use `set_session_brand_kit` instead (that's also what the showcase iframe's "Use for this session" button calls). Idempotent. Single parameter: `brand_kit_id`.
 
 ### `delete_brand_kit`
 Soft-delete a brand kit. Destructive — only call when the user explicitly names the kit to delete; never as part of a "cleanup" or bulk action the user didn't request.

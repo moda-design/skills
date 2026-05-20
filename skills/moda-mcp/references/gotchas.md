@@ -90,7 +90,9 @@ Passing a logo as `reference` makes the agent emulate its style instead of placi
 
 **Two upload paths:**
 - `upload_file(source_url=…)` — one call, when the file is already at a public URL. Content-hash deduplicated.
-- `create_upload_url` → PUT bytes out-of-band → `register_uploaded_file(storage_key, …)` — three steps, when the file is local with no public URL.
+- `create_upload_url` → PUT bytes to the returned `upload_url` → `register_uploaded_file(storage_key, …)` — three steps, when the file is local with no public URL.
+
+**The `create_upload_url` PUT goes to `mcp.moda.app`.** The `upload_url` it returns is on the Moda MCP host itself (`https://mcp.moda.app/uploads/proxy?token=…`) — not a Google Cloud Storage URL. That's deliberate: it's the same host the MCP connector already talks to, so sandboxed clients with a network egress allow-list don't need a separate rule. If a hardened client *does* block the out-of-band PUT, the one host to allow is `mcp.moda.app` — never all of `storage.googleapis.com`.
 
 For existing Moda canvases as inspiration, don't upload a screenshot — pass `reference_canvas_ids=[cvs_…]` directly. The agent sees the structure natively.
 

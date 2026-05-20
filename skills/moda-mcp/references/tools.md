@@ -121,7 +121,7 @@ Upload a file from a public URL into Moda's storage. Returns a stable `file_id` 
 | `filename` | string | no (inferred from URL) |
 
 ### `create_upload_url`
-**Step 1 of the two-step local-file upload.** Returns a signed PUT URL + `storage_key`. PUT the file bytes to that URL out-of-band (e.g. `curl -X PUT --data-binary @file.png -H 'Content-Type: image/png' <url>`), then call `register_uploaded_file`. Use this path when the file is on disk and not already at a public URL.
+**Step 1 of the two-step local-file upload.** Returns an `upload_url` (on the Moda MCP host — `mcp.moda.app`, not a Google Cloud Storage URL) plus a `storage_key`. PUT the file bytes to `upload_url` out-of-band (e.g. `curl -X PUT --data-binary @file.png -H 'Content-Type: image/png' <upload_url>`), then call `register_uploaded_file`. Use this path when the file is on disk and not already at a public URL. Because the PUT targets the same host as the MCP connector, sandboxed clients with a network egress allow-list don't need an extra rule.
 
 | Parameter | Type | Required |
 | --- | --- | --- |

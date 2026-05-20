@@ -1,0 +1,43 @@
+name: Build release zips
+
+# Builds the per-skill zip artifacts (moda-mcp.zip, moda-api.zip) plus
+# the bundled skills.zip, and attaches them to the release.
+#
+# - `release: published` covers the normal flow: cut a release with
+#   `gh release create` (or the GitHub UI) and the artifacts attach
+#   themselves.
+# - `workflow_dispatch` covers backfilling artifacts onto a release
+#   that already exists — pass the tag.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to build + attach artifacts to"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve tag
+        id: tag
+        run: echo "tag=${{ github.event.release.tag_name || inputs.tag }}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout the tagged commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.tag.outputs.tag }}
+
+      - name: Build skill zips
+        run: bash scripts/build-skill-zips.sh
+
+      - name: Attach artifacts to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ steps.tag.outputs.tag }}" dist/moda-mcp.zip dist/moda-api.zip dist/skills.zip --clobber --repo "${{ github.repository }}"

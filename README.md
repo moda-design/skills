@@ -75,11 +75,15 @@ Manual MCP setup lives in [`.cursor/mcp.json`](https://docs.moda.app/mcp/setup) 
 
 ### Claude Desktop / claude.ai (browser) / Claude Mobile
 
-Add the Moda Custom Connector in your settings, then install the skills on a machine where you also code.
+First add the Moda Custom Connector:
 
 1. Open **Customize** in the sidebar → **+** → **Add custom connector**.
 2. **Name**: `Moda`. **URL**: `https://mcp.moda.app/mcp`. Click **Add**, then **Connect** and sign in.
-3. For skill docs in your coding environment, run `npx skills add moda-design/skills` there.
+
+Then add the skill. Two options:
+
+- **Upload the skill zip** (no terminal needed): download [`moda-mcp.zip`](https://github.com/moda-design/skills/releases/latest/download/moda-mcp.zip) from the latest release, then in claude.ai go to **Settings → Capabilities → Skills → Upload skill** and select the file. (Use the per-skill `moda-mcp.zip`, not the bundled `skills.zip` — claude.ai's uploader requires a single skill per zip.)
+- **`npx skills add`**: on a machine where you also code, run `npx skills add moda-design/skills`.
 
 Team/Enterprise claude.ai users: an admin must first add the Moda connector in **Admin Settings > Connectors**.
 

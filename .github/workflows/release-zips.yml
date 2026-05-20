@@ -29,10 +29,15 @@ jobs:
         id: tag
         run: echo "tag=${{ github.event.release.tag_name || inputs.tag }}" >> "$GITHUB_OUTPUT"
 
-      - name: Checkout the tagged commit
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.tag.outputs.tag }}
+          # For `release: published`, build from the release tag.
+          # For `workflow_dispatch` (backfill), build from the dispatched
+          # branch (main) — an older release tag may predate this build
+          # script. Releases are always cut from main, so main's skill
+          # content matches the release content either way.
+          ref: ${{ github.event.release.tag_name || github.ref_name }}
 
       - name: Build skill zips
         run: bash scripts/build-skill-zips.sh

@@ -25,7 +25,9 @@ start_design_task(
 
 ## Returns
 
-Task handle in milliseconds — `task_id`, `canvas_id`, `canvas_url`, `conversation_id`, `status: "queued"`. Poll `get_task_status(task_id)` at `retry_after_seconds` until `is_terminal == true`. Once `can_export == true`, you can call `export_canvas(canvas_id=…, format=…)`.
+Task handle in milliseconds — `task_id`, `canvas_id`, `canvas_url`, `conversation_id`, `status: "queued"`. Poll `get_task_status(task_id)` at `retry_after_seconds` until `is_terminal == true`.
+
+The succeeded task already carries the finished design **as a rendered file** at `result.export` — `{url, format, status, page_count}`, exported in the canvas's category-default format. Hand that `url` to the user directly. Only call `export_canvas(canvas_id=…, format=…)` when they need a *different* format or a specific page.
 
 ## See also
 

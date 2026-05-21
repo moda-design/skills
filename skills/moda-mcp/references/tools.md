@@ -164,12 +164,14 @@ Key parameters (full list in the docs):
 
 Slide count for `slides` decks goes **in the prompt text** ("a 10-slide deck"). There is no `number_of_slides` MCP parameter — the REST API exposes one, but the MCP server does not.
 
-Return fields: `task_id`, `canvas_id`, `canvas_url`, `conversation_id`, `status`, `retry_after_seconds`.
+Return fields (the async handle): `task_id`, `canvas_id`, `canvas_url`, `conversation_id`, `status`, `retry_after_seconds`. The finished design — including an **auto-export of the result** — arrives on `get_task_status` once the task succeeds.
 
 ### `get_task_status`
-Poll task progress. Returns `task_id`, `canvas_id`, `canvas_url`, `conversation_id`, `status`, `progress_percent`, `current_step`, `is_terminal`, `can_export`, `retry_after_seconds`, `operations_streamed`, `created_at`, `started_at`, `completed_at`, `error`.
+Poll task progress. Returns `task_id`, `canvas_id`, `canvas_url`, `conversation_id`, `status`, `progress_percent`, `current_step`, `is_terminal`, `can_export`, `retry_after_seconds`, `operations_streamed`, `created_at`, `started_at`, `completed_at`, `error`, and — on a succeeded task — `result`.
 
-Statuses: `queued`, `running`, `completed`, `failed`, `cancelled`, `dead_letter`. Stop polling when `is_terminal == true`. Call `export_canvas` only when `can_export == true`.
+Statuses: `queued`, `running`, `completed`, `failed`, `cancelled`, `dead_letter`. Stop polling when `is_terminal == true`.
+
+A succeeded design task carries `result.export` — the finished design **already rendered to a file**: `{url, format, status, page_count}`, exported in the canvas's category-default format. Use that artifact directly; you do **not** need a follow-up `export_canvas` call unless you want a different format or page.
 
 ### `list_tasks`
 List recent design tasks. Filter by `canvas_id`, `status`, `limit` (max 50). Use this instead of fanning out one `get_task_status` per task when polling >3 tasks at once.
@@ -193,6 +195,8 @@ Duplicate a canvas; optionally start a design task on the copy. Original is neve
 
 ### `export_canvas`
 Export a canvas as PNG, JPEG, PDF, or PPTX. Pass exactly one of `canvas_id` or `url`.
+
+**Right after a design task, you usually don't need this.** A completed `start_design_task` / `remix_design` already returns `result.export` — the finished design rendered to a file. Reach for `export_canvas` only to render a *different* format or page than the auto-export, or to export a canvas that wasn't just produced by a task.
 
 | Parameter | Type | Default |
 | --- | --- | --- |

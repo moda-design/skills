@@ -110,6 +110,8 @@ Exceeding the cap surfaces as a tool error on the call that puts you over. Use a
 
 ## Exports
 
+**A finished design task already includes its export — don't re-export.** A completed `start_design_task` / `remix_design` carries `result.export` (`{url, format, status, page_count}`) — the design rendered to a file in the canvas's category-default format. Read that. Calling `export_canvas` for the same just-finished canvas re-does work the task already did; only call it for a *different* format or page, or for a canvas that wasn't just produced by a task.
+
 **`export_canvas` returns `{status: "not_ready", reason, retry_after_seconds}`** while a design task is still running on the canvas. **Not an error** — retry after `retry_after_seconds`. Reasons: `active_design_job` (most common), `task_status_unavailable` (transient).
 
 **Large multi-page PDFs/PPTX** can exceed the ~20s sync wait budget and return `{status: "in_progress", task_id}`. Poll `get_export_status(task_id)` for the URL. Export task records are kept ~1 hour.

@@ -43,7 +43,7 @@ Every task-shaped operation — design, export (when async), remix, brand-kit ex
 | `attempt` | integer | Current attempt number |
 | `max_attempts` | integer | Usually 3 — auto-retry cap for transient failures |
 | `input` | object | Varies by `kind` (design: `{prompt, format, ...}`; export: `{canvas_id, format, ...}`) |
-| `result` | object / null | Populated on `succeeded`; varies by `kind` (design: `{canvas_id, canvas_url, conversation_id}`) |
+| `result` | object / null | Populated on `succeeded`; varies by `kind` (design: `{canvas_id, canvas_url, conversation_id, export}`) |
 | `error` | object / null | `{message, retryable}` — populated on `failed` |
 | `credits` | object / null | `{credits_used, credits_remaining}` on `succeeded` |
 | `links` | object | HATEOAS-style relations: `self`, `events`, `cancel`, `canvas` |
@@ -68,12 +68,14 @@ Task shape is polymorphic on `kind`:
 
 | `kind` | `input` includes | `result` includes (on succeeded) |
 | --- | --- | --- |
-| `design` | `prompt`, `format`, `attachments`, `brand_kit_id`, `number_of_slides`, ... | `canvas_id`, `canvas_url`, `conversation_id` |
+| `design` | `prompt`, `format`, `attachments`, `brand_kit_id`, `number_of_slides`, ... | `canvas_id`, `canvas_url`, `conversation_id`, `export` |
 | `remix` | `canvas_id`, `prompt`, `brand_kit_id`, ... | `canvas_id`, `canvas_url`, `source_canvas_id` |
 | `export` | `canvas_id`, `format`, ... | `export_url`, `format`, `expires_at` |
 | `brand_kit_extract` | `url` | `brand_kit_id` |
 
 Always check `kind` before reading `result` fields.
+
+On a succeeded `design` task, `result.export` carries the finished design **already rendered to a file** — `{url, format, status, page_count}`, exported in the canvas's category-default format. Read it directly instead of issuing a separate `POST /v1/canvases/{id}/export`. It is absent when auto-export was disabled (`export_on_complete: {enabled: false}`) or did not finish within the budget.
 
 Note: `POST /v1/canvases/{id}/export` today is **synchronous** — it returns a plain `{url, format}` payload, not a Task envelope. The `export` kind applies to webhook events (`export.succeeded` / `export.failed`) and to long-running export flows if/when they exist. See [`canvases-and-exports.md`](./canvases-and-exports.md).
 

@@ -1,0 +1,31 @@
+{
+  "name": "moda",
+  "version": "0.1.0",
+  "description": "Create and edit brand-aligned designs with Moda's MCP server and REST API skills.",
+  "author": {
+    "name": "Moda",
+    "url": "https://moda.app"
+  },
+  "homepage": "https://moda.app",
+  "repository": "https://github.com/moda-design/skills",
+  "license": "MIT",
+  "keywords": ["moda", "design", "mcp", "api", "skills", "canvas", "slides"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Moda",
+    "shortDescription": "Create and edit brand-aligned designs.",
+    "longDescription": "Use Moda's MCP server and agent skills to create, remix, export, and live-edit brand-aligned canvases, decks, ads, documents, and graphics.",
+    "developerName": "Moda",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://moda.app",
+    "privacyPolicyURL": "https://moda.app/privacy",
+    "termsOfServiceURL": "https://moda.app/terms",
+    "defaultPrompt": [
+      "Use Moda to create a brand-aligned pitch deck from this brief.",
+      "Use Moda to turn this document into an editable visual report.",
+      "Use Moda to open a live canvas editor for this design."
+    ]
+  }
+}

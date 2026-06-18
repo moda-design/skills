@@ -15,6 +15,7 @@ Install once and your agent knows the canonical design-creation flow, the prompt
 
 | Situation | Install path |
 | --- | --- |
+| You're using Codex and want skills + MCP setup in one package | **Codex plugin** — install from the plugin marketplace source below |
 | You already have the Moda MCP connected, or only want the REST-API skill | **Vercel `skills` CLI** — `npx skills add moda-design/skills` (skills only, no MCP touch) |
 | You're new to Moda and want one-shot skills + MCP setup | **Editor-native plugin** — pick your editor below |
 | You're on Claude Desktop, claude.ai, or Claude Mobile | **OAuth Custom Connector** — pair with `npx skills add` on a machine where you code |
@@ -23,6 +24,32 @@ Install once and your agent knows the canonical design-creation flow, the prompt
 Every install path ultimately surfaces the same Markdown files under [`skills/`](./skills/). The per-editor manifests (`.claude-plugin/`, `.cursor-plugin/`, `gemini-extension.json`, `.mcp.json`) just bundle them with the right install ritual for each host.
 
 ## Install
+
+### Codex — plugin (bundles skills + MCP)
+
+Add the Moda marketplace source, then install the Moda plugin from Codex's plugin browser:
+
+```bash
+codex plugin marketplace add moda-design/skills
+codex
+/plugins
+```
+
+In the plugin browser, choose the **Moda** marketplace, open **Moda**, and select **Install plugin**. Start a new thread after installation.
+
+The plugin registers the Moda MCP server from [`.mcp.json`](./.mcp.json). If Codex does not prompt for OAuth during install or first use, run:
+
+```bash
+codex mcp login moda
+```
+
+The Codex plugin also bundles both skills in [`skills/`](./skills/), so Codex can load the right Moda workflow before it calls MCP tools. Accounts with the live canvas feature enabled can open the interactive canvas editor inline in Codex.
+
+For local branch testing from a clone of this repo, run:
+
+```bash
+codex plugin marketplace add .
+```
 
 ### Claude Code — plugin (bundles skills + MCP)
 
@@ -123,7 +150,7 @@ The extension manifest at [`gemini-extension.json`](./gemini-extension.json) reg
 
 ### Other agents / raw `CLAUDE.md` include
 
-For the Claude Agent SDK, Codex, Continue, Windsurf, or any agent that reads Markdown from a known path, either:
+For the Claude Agent SDK, Continue, Windsurf, or any agent that reads Markdown from a known path, either:
 
 - Run `npx skills add moda-design/skills -a <agent>` (the CLI supports 45+ agents).
 - Or include the SKILL.md directly in your system prompt:

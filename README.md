@@ -17,10 +17,11 @@ Install once and your agent knows the canonical design-creation flow, the prompt
 | --- | --- |
 | You already have the Moda MCP connected, or only want the REST-API skill | **Vercel `skills` CLI** — `npx skills add moda-design/skills` (skills only, no MCP touch) |
 | You're new to Moda and want one-shot skills + MCP setup | **Editor-native plugin** — pick your editor below |
+| You use Codex and want skills + MCP setup | **Codex plugin** — use the bundled [`.codex-plugin/plugin.json`](./.codex-plugin/plugin.json) manifest |
 | You're on Claude Desktop, claude.ai, or Claude Mobile | **OAuth Custom Connector** — pair with `npx skills add` on a machine where you code |
 | You write raw system prompts or use the Claude Agent SDK | **Manual include** — `@include skills/moda-mcp/SKILL.md` |
 
-Every install path ultimately surfaces the same Markdown files under [`skills/`](./skills/). The per-editor manifests (`.claude-plugin/`, `.cursor-plugin/`, `gemini-extension.json`, `.mcp.json`) just bundle them with the right install ritual for each host.
+Every install path ultimately surfaces the same Markdown files under [`skills/`](./skills/). The per-editor manifests (`.codex-plugin/`, `.claude-plugin/`, `.cursor-plugin/`, `gemini-extension.json`, `.mcp.json`) just bundle them with the right install ritual for each host.
 
 ## Install
 
@@ -121,9 +122,31 @@ gemini /mcp auth moda
 
 The extension manifest at [`gemini-extension.json`](./gemini-extension.json) registers the MCP server; the `auth` step opens the OAuth flow.
 
+### Codex
+
+The Codex plugin manifest lives at [`.codex-plugin/plugin.json`](./.codex-plugin/plugin.json). It registers both skills from [`skills/`](./skills/) and points Codex at the Moda MCP server in [`.mcp.json`](./.mcp.json).
+
+To package plugin visuals, add PNG assets under `assets/` and reference them from the manifest:
+
+```json
+{
+  "interface": {
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png",
+    "logoDark": "./assets/logo-dark.png",
+    "screenshots": [
+      "./assets/screenshot-create-design.png",
+      "./assets/screenshot-export-flow.png"
+    ]
+  }
+}
+```
+
+Only add those fields when the files exist in the plugin package; Codex plugin validation rejects missing logo or screenshot paths.
+
 ### Other agents / raw `CLAUDE.md` include
 
-For the Claude Agent SDK, Codex, Continue, Windsurf, or any agent that reads Markdown from a known path, either:
+For the Claude Agent SDK, Continue, Windsurf, or any agent that reads Markdown from a known path, either:
 
 - Run `npx skills add moda-design/skills -a <agent>` (the CLI supports 45+ agents).
 - Or include the SKILL.md directly in your system prompt:

@@ -1,0 +1,41 @@
+{
+  "name": "moda",
+  "version": "0.1.0",
+  "description": "Create editable, brand-aligned slides and designs with Moda's MCP server and REST API skills.",
+  "author": {
+    "name": "Moda",
+    "url": "https://moda.app"
+  },
+  "homepage": "https://docs.moda.app/mcp/agent-skill",
+  "repository": "https://github.com/moda-design/skills",
+  "license": "MIT",
+  "keywords": [
+    "moda",
+    "design",
+    "mcp",
+    "api",
+    "slides",
+    "canvas"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Moda",
+    "shortDescription": "Create brand-aligned designs, decks, and exports.",
+    "longDescription": "Moda is an AI design agent for creating editable, brand-aligned slides, one-pagers, social posts, ads, graphics, and canvas exports. This plugin bundles the Moda MCP server setup with skills for conversational design workflows and REST API automation.",
+    "developerName": "Moda",
+    "category": "Productivity",
+    "capabilities": [
+      "Design",
+      "MCP",
+      "Automation"
+    ],
+    "websiteURL": "https://moda.app",
+    "brandColor": "#111827",
+    "defaultPrompt": [
+      "Create a branded pitch deck with Moda.",
+      "Turn this brief into a Moda design.",
+      "Use Moda's API for an export pipeline."
+    ]
+  }
+}
